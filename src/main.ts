@@ -40,8 +40,35 @@ worldGrid.material.uniforms.uSize1.value = 2;
 worldGrid.material.uniforms.uSize2.value = 8;
 
 const resizeWorld = () => {
-    world.renderer?.resize();
+    const { width, height } = viewport.getBoundingClientRect();
+    if (width === 0 || height === 0) return;
+    world.renderer.resize();
     world.camera.updateAspect();
+
+    const { postproduction } = world.renderer;
+    if (postproduction.enabled) return;
+
+    postproduction.enabled = true;
+    postproduction.style = OBF.PostproductionAspect.COLOR_SHADOWS;
+    postproduction.edgesPass.color = new THREE.Color("skyblue");
+    postproduction.aoPass.updateGtaoMaterial({
+        radius: 0.25,
+        distanceExponent: 1,
+        thickness: 1,
+        scale: 1,
+        samples: 16,
+        distanceFallOff: 1,
+        screenSpaceRadius: true,
+    });
+    postproduction.aoPass.updatePdMaterial({
+        lumaPhi: 10,
+        depthPhi: 2,
+        normalPhi: 3,
+        radius: 4,
+        radiusExponent: 1,
+        rings: 2,
+        samples: 16,
+    });
 };
 
 viewport.addEventListener("resize", resizeWorld);
@@ -51,37 +78,6 @@ world.dynamicAnchor = false;
 components.init();
 
 components.get(OBC.Raycasters).get(world);
-
-const { postproduction } = world.renderer;
-postproduction.enabled = true;
-postproduction.style = OBF.PostproductionAspect.COLOR_SHADOWS;
-
-const { aoPass, edgesPass } = world.renderer.postproduction;
-
-edgesPass.color = new THREE.Color("skyblue");
-
-const aoParameters = {
-    radius: 0.25,
-    distanceExponent: 1,
-    thickness: 1,
-    scale: 1,
-    samples: 16,
-    distanceFallOff: 1,
-    screenSpaceRadius: true,
-};
-
-const pdParameters = {
-    lumaPhi: 10,
-    depthPhi: 2,
-    normalPhi: 3,
-    radius: 4,
-    radiusExponent: 1,
-    rings: 2,
-    samples: 16,
-};
-
-aoPass.updateGtaoMaterial(aoParameters);
-aoPass.updatePdMaterial(pdParameters);
 
 const fragments = components.get(OBC.FragmentsManager);
 fragments.init("/node_modules/@thatopen/fragments/dist/Worker/worker.mjs");
@@ -108,7 +104,7 @@ world.camera.controls.addEventListener("rest", () => {
 const ifcLoader = components.get(OBC.IfcLoader);
 await ifcLoader.setup({
     autoSetWasm: false,
-    wasm: { absolute: true, path: "https://unpkg.com/web-ifc@0.0.75/" },
+    wasm: { absolute: true, path: "https://unpkg.com/web-ifc@0.0.74/" },
 });
 
 const highlighter = components.get(OBF.Highlighter);

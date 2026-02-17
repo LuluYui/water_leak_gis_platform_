@@ -47,11 +47,19 @@ export const elementsDataPanelTemplate: BUI.StatefullComponent<
 
   const sectionId = BUI.Manager.newRandomId();
 
+  const toggleCollapsed = () => {
+    const section = document.getElementById(sectionId) as BUI.PanelSection;
+    if (section) {
+      section.collapsed = !section.collapsed;
+    }
+  };
+
   return BUI.html`
-    <bim-panel-section fixed id=${sectionId} icon=${appIcons.TASK} label="Selection Data">
-      <div style="display: flex; gap: 0.375rem;">
+    <bim-panel-section collapsed id=${sectionId} icon=${appIcons.TASK} label="Selection Data">
+      <div style="display: flex; gap: 0.375rem; align-items: center;">
         <bim-text-input @input=${search} vertical placeholder="Search..." debounce="200"></bim-text-input>
-        <bim-button style="flex: 0;" @click=${toggleExpanded} icon=${appIcons.EXPAND}></bim-button>
+        <bim-button style="flex: 0;" @click=${toggleCollapsed} icon=${appIcons.COLLAPSE} tooltip-title="Collapse Panel"></bim-button>
+        <bim-button style="flex: 0;" @click=${toggleExpanded} icon=${appIcons.EXPAND} tooltip-title="Expand Rows"></bim-button>
         <bim-button style="flex: 0;" @click=${() => propsTable.downloadData("ElementData", "tsv")} icon=${appIcons.EXPORT} tooltip-title="Export Data" tooltip-text="Export the shown properties to TSV."></bim-button>
       </div>
       ${propsTable}
