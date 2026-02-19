@@ -4,90 +4,111 @@ import * as OBC from "@thatopen/components";
 import { appIcons } from "../../globals";
 
 export interface ModelsPanelState {
-    components: OBC.Components;
+  components: OBC.Components;
 }
 
 export const modelsPanelTemplate: BUI.StatefullComponent<ModelsPanelState> = (
-    state,
+  state,
 ) => {
-    const { components } = state;
+  const { components } = state;
 
-    const ifcLoader = components.get(OBC.IfcLoader);
-    const fragments = components.get(OBC.FragmentsManager);
+  const ifcLoader = components.get(OBC.IfcLoader);
+  const fragments = components.get(OBC.FragmentsManager);
 
-    const [modelsList] = CUI.tables.modelsList({
-        components,
-        actions: { download: false },
+  const [modelsList] = CUI.tables.modelsList({
+    components,
+    actions: { download: false },
+  });
+
+  const onAddIfcModel = async ({ target }: { target: BUI.Button }) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.multiple = false;
+    input.accept = ".ifc";
+
+    input.addEventListener("change", async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      target.loading = true;
+      const buffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      await ifcLoader.load(bytes, true, file.name.replace(".ifc", ""));
+      target.loading = false;
+      BUI.ContextMenu.removeMenus();
     });
 
-    const onAddIfcModel = async ({ target }: { target: BUI.Button }) => {
-        const input = document.createElement("input");
-        input.type = "file";
-        input.multiple = false;
-        input.accept = ".ifc";
+    input.addEventListener("cancel", () => (target.loading = false));
 
-        input.addEventListener("change", async () => {
-            const file = input.files?.[0];
-            if (!file) return;
-            target.loading = true;
-            const buffer = await file.arrayBuffer();
-            const bytes = new Uint8Array(buffer);
-            await ifcLoader.load(bytes, true, file.name.replace(".ifc", ""));
-            target.loading = false;
-            BUI.ContextMenu.removeMenus();
-        });
+    input.click();
+  };
 
-        input.addEventListener("cancel", () => (target.loading = false));
+  const onAddFragmentsModel = async ({ target }: { target: BUI.Button }) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.multiple = false;
+    input.accept = ".frag";
 
-        input.click();
-    };
+    input.addEventListener("change", async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      target.loading = true;
+      const buffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      await fragments.core.load(bytes, {
+        modelId: file.name.replace(".frag", ""),
+      });
+      target.loading = false;
+      BUI.ContextMenu.removeMenus();
+    });
 
-    const onAddFragmentsModel = async ({ target }: { target: BUI.Button }) => {
-        const input = document.createElement("input");
-        input.type = "file";
-        input.multiple = false;
-        input.accept = ".frag";
+    input.addEventListener("cancel", () => (target.loading = false));
 
-        input.addEventListener("change", async () => {
-            const file = input.files?.[0];
-            if (!file) return;
-            target.loading = true;
-            const buffer = await file.arrayBuffer();
-            const bytes = new Uint8Array(buffer);
-            await fragments.core.load(bytes, {
-                modelId: file.name.replace(".frag", ""),
-            });
-            target.loading = false;
-            BUI.ContextMenu.removeMenus();
-        });
+    input.click();
+  };
 
-        input.addEventListener("cancel", () => (target.loading = false));
+  const onSearch = (e: Event) => {
+    const input = e.target as BUI.TextInput;
+    modelsList.queryString = input.value;
+  };
 
-        input.click();
-    };
+  const loadPreset = async () => {
+    try {
+      const response = await fetch("/model.ifc");
+      const buffer = await response.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      await ifcLoader.load(bytes, true, "model");
+    } catch (e) {
+      console.warn("Failed to load preset model:", e);
+    }
+  };
 
-    const onSearch = (e: Event) => {
-        const input = e.target as BUI.TextInput;
-        modelsList.queryString = input.value;
-    };
+  const onCreated = (e?: Element) => {
+    if (!e) return;
+    // loadPreset();
+    // Load preset fragments
+    const fragPaths = [
+      "https://thatopen.github.io/engine_components/resources/frags/school_arq.frag",
+      "https://thatopen.github.io/engine_components/resources/frags/school_str.frag",
+    ];
 
-    const loadPreset = async () => {
+    Promise.all(
+      fragPaths.map(async (path) => {
         try {
-            const response = await fetch("/model.ifc");
-            const buffer = await response.arrayBuffer();
-            const bytes = new Uint8Array(buffer);
-            await ifcLoader.load(bytes, true, "model");
-        } catch (e) {
-            console.warn("Failed to load preset model:", e);
+          const modelId = path.split("/").pop()?.split(".").shift();
+          if (!modelId) return null;
+          const file = await fetch(path);
+          const buffer = await file.arrayBuffer();
+          console.log("loading model");
+          return fragments.core.load(buffer, { modelId });
+        } catch (err) {
+          console.warn("Failed to load fragment:", err);
+          return null;
         }
-    };
+      }),
+    );
+  };
 
-    const onCreated = (e?: Element) => {
-        if (!e) return;
-        // loadPreset();
-    };
-
-    return BUI.html`
+  return BUI.html`
     <bim-panel-section ${BUI.ref(onCreated)} fixed icon=${appIcons.MODEL} label="Models">
       <div style="display: flex; gap: 0.5rem;">
         <bim-text-input @input=${onSearch} vertical placeholder="Search..." debounce="200"></bim-text-input>

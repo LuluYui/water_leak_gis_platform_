@@ -5,6 +5,7 @@ import * as BUI from "@thatopen/ui";
 import * as TEMPLATES from "./ui-templates";
 import { appIcons, CONTENT_GRID_ID } from "./globals";
 import { viewportSettingsTemplate } from "./ui-templates/buttons/viewport-settings";
+import { finderPanelTemplate } from "./ui-templates/sections/finder";
 
 BUI.Manager.init();
 
@@ -14,9 +15,9 @@ const components = new OBC.Components();
 const worlds = components.get(OBC.Worlds);
 
 const world = worlds.create<
-    OBC.SimpleScene,
-    OBC.OrthoPerspectiveCamera,
-    OBF.PostproductionRenderer
+  OBC.SimpleScene,
+  OBC.OrthoPerspectiveCamera,
+  OBF.PostproductionRenderer
 >();
 
 world.name = "Main";
@@ -25,7 +26,7 @@ world.scene.setup();
 world.scene.three.background = new THREE.Color(0x1a1d23);
 
 const viewport = BUI.Component.create<BUI.Viewport>(() => {
-    return BUI.html`<bim-viewport></bim-viewport>`;
+  return BUI.html`<bim-viewport></bim-viewport>`;
 });
 
 world.renderer = new OBF.PostproductionRenderer(components, viewport);
@@ -40,35 +41,35 @@ worldGrid.material.uniforms.uSize1.value = 2;
 worldGrid.material.uniforms.uSize2.value = 8;
 
 const resizeWorld = () => {
-    const { width, height } = viewport.getBoundingClientRect();
-    if (width === 0 || height === 0) return;
-    world.renderer.resize();
-    world.camera.updateAspect();
+  const { width, height } = viewport.getBoundingClientRect();
+  if (width === 0 || height === 0) return;
+  world.renderer.resize();
+  world.camera.updateAspect();
 
-    const { postproduction } = world.renderer;
-    if (postproduction.enabled) return;
+  const { postproduction } = world.renderer;
+  if (postproduction.enabled) return;
 
-    postproduction.enabled = true;
-    postproduction.style = OBF.PostproductionAspect.COLOR_SHADOWS;
-    postproduction.edgesPass.color = new THREE.Color("skyblue");
-    postproduction.aoPass.updateGtaoMaterial({
-        radius: 0.25,
-        distanceExponent: 1,
-        thickness: 1,
-        scale: 1,
-        samples: 16,
-        distanceFallOff: 1,
-        screenSpaceRadius: true,
-    });
-    postproduction.aoPass.updatePdMaterial({
-        lumaPhi: 10,
-        depthPhi: 2,
-        normalPhi: 3,
-        radius: 4,
-        radiusExponent: 1,
-        rings: 2,
-        samples: 16,
-    });
+  postproduction.enabled = true;
+  postproduction.style = OBF.PostproductionAspect.COLOR_SHADOWS;
+  postproduction.edgesPass.color = new THREE.Color("skyblue");
+  postproduction.aoPass.updateGtaoMaterial({
+    radius: 0.25,
+    distanceExponent: 1,
+    thickness: 1,
+    scale: 1,
+    samples: 16,
+    distanceFallOff: 1,
+    screenSpaceRadius: true,
+  });
+  postproduction.aoPass.updatePdMaterial({
+    lumaPhi: 10,
+    depthPhi: 2,
+    normalPhi: 3,
+    radius: 4,
+    radiusExponent: 1,
+    rings: 2,
+    samples: 16,
+  });
 };
 
 viewport.addEventListener("resize", resizeWorld);
@@ -83,51 +84,49 @@ const fragments = components.get(OBC.FragmentsManager);
 fragments.init("/node_modules/@thatopen/fragments/dist/Worker/worker.mjs");
 
 fragments.core.models.materials.list.onItemSet.add(({ value: material }) => {
-    const isLod = "isLodMaterial" in material && material.isLodMaterial;
-    if (isLod) {
-        world.renderer!.postproduction.basePass.isolatedMaterials.push(
-            material,
-        );
-    }
+  const isLod = "isLodMaterial" in material && material.isLodMaterial;
+  if (isLod) {
+    world.renderer!.postproduction.basePass.isolatedMaterials.push(material);
+  }
 });
 
 world.camera.projection.onChanged.add(() => {
-    for (const [_, model] of fragments.list) {
-        model.useCamera(world.camera.three);
-    }
+  for (const [_, model] of fragments.list) {
+    model.useCamera(world.camera.three);
+  }
 });
 
 world.camera.controls.addEventListener("rest", () => {
-    fragments.core.update(true);
+  fragments.core.update(true);
 });
 
 const ifcLoader = components.get(OBC.IfcLoader);
 await ifcLoader.setup({
-    autoSetWasm: false,
-    wasm: { absolute: true, path: "https://unpkg.com/web-ifc@0.0.74/" },
+  autoSetWasm: false,
+  wasm: { absolute: true, path: "https://unpkg.com/web-ifc@0.0.74/" },
 });
 
 const highlighter = components.get(OBF.Highlighter);
 highlighter.setup({
-    world,
-    selectMaterialDefinition: {
-        color: new THREE.Color("#124bcf"),
-        renderedFaces: 1,
-        opacity: 1,
-        transparent: false,
-    },
+  world,
+  selectMaterialDefinition: {
+    color: new THREE.Color("#124bcf"),
+    renderedFaces: 1,
+    opacity: 1,
+    transparent: false,
+  },
 });
 
 // Clipper Setup
 const clipper = components.get(OBC.Clipper);
 viewport.ondblclick = () => {
-    if (clipper.enabled) clipper.create(world);
+  if (clipper.enabled) clipper.create(world);
 };
 
 window.addEventListener("keydown", (event) => {
-    if (event.code === "Delete" || event.code === "Backspace") {
-        clipper.delete(world);
-    }
+  if (event.code === "Delete" || event.code === "Backspace") {
+    clipper.delete(world);
+  }
 });
 
 // Length Measurement Setup
@@ -136,19 +135,19 @@ lengthMeasurer.world = world;
 lengthMeasurer.color = new THREE.Color("#6528d7");
 
 lengthMeasurer.list.onItemAdded.add((line) => {
-    const center = new THREE.Vector3();
-    line.getCenter(center);
-    const radius = line.distance() / 3;
-    const sphere = new THREE.Sphere(center, radius);
-    world.camera.controls.fitToSphere(sphere, true);
+  const center = new THREE.Vector3();
+  line.getCenter(center);
+  const radius = line.distance() / 3;
+  const sphere = new THREE.Sphere(center, radius);
+  world.camera.controls.fitToSphere(sphere, true);
 });
 
 viewport.addEventListener("dblclick", () => lengthMeasurer.create());
 
 window.addEventListener("keydown", (event) => {
-    if (event.code === "Delete" || event.code === "Backspace") {
-        lengthMeasurer.delete();
-    }
+  if (event.code === "Delete" || event.code === "Backspace") {
+    lengthMeasurer.delete();
+  }
 });
 
 // Area Measurement Setup
@@ -157,43 +156,50 @@ areaMeasurer.world = world;
 areaMeasurer.color = new THREE.Color("#6528d7");
 
 areaMeasurer.list.onItemAdded.add((area) => {
-    if (!area.boundingBox) return;
-    const sphere = new THREE.Sphere();
-    area.boundingBox.getBoundingSphere(sphere);
-    world.camera.controls.fitToSphere(sphere, true);
+  if (!area.boundingBox) return;
+  const sphere = new THREE.Sphere();
+  area.boundingBox.getBoundingSphere(sphere);
+  world.camera.controls.fitToSphere(sphere, true);
 });
 
 viewport.addEventListener("dblclick", () => {
-    areaMeasurer.create();
+  areaMeasurer.create();
 });
 
 window.addEventListener("keydown", (event) => {
-    if (event.code === "Enter" || event.code === "NumpadEnter") {
-        areaMeasurer.endCreation();
-    }
+  if (event.code === "Enter" || event.code === "NumpadEnter") {
+    areaMeasurer.endCreation();
+  }
 });
 
 // Define what happens when a fragments model has been loaded
 fragments.list.onItemSet.add(async ({ value: model }) => {
-    model.useCamera(world.camera.three);
-    model.getClippingPlanesEvent = () => {
-        return Array.from(world.renderer!.three.clippingPlanes) || [];
-    };
-    world.scene.three.add(model.object);
-    await fragments.core.update(true);
+  model.useCamera(world.camera.three);
+  model.getClippingPlanesEvent = () => {
+    return Array.from(world.renderer!.three.clippingPlanes) || [];
+  };
+  world.scene.three.add(model.object);
+  await fragments.core.update(true);
 });
 
 // Viewport Layouts
 const [viewportSettings] = BUI.Component.create(viewportSettingsTemplate, {
-    components,
-    world,
+  components,
+  world,
 });
 
 viewport.append(viewportSettings);
 
+// Viewport Layouts
+const [finder] = BUI.Component.create(finderPanelTemplate, {
+  components,
+});
+
+viewport.append(finder);
+
 const [viewportGrid] = BUI.Component.create(TEMPLATES.viewportGridTemplate, {
-    components,
-    world,
+  components,
+  world,
 });
 
 viewport.append(viewportGrid);
@@ -206,48 +212,48 @@ const viewportCardTemplate = () => BUI.html`
 `;
 
 const [contentGrid] = BUI.Component.create<
-    BUI.Grid<TEMPLATES.ContentGridLayouts, TEMPLATES.ContentGridElements>,
-    TEMPLATES.ContentGridState
+  BUI.Grid<TEMPLATES.ContentGridLayouts, TEMPLATES.ContentGridElements>,
+  TEMPLATES.ContentGridState
 >(TEMPLATES.contentGridTemplate, {
-    components,
-    world,
-    id: CONTENT_GRID_ID,
-    viewportTemplate: viewportCardTemplate,
+  components,
+  world,
+  id: CONTENT_GRID_ID,
+  viewportTemplate: viewportCardTemplate,
 });
 
 const setInitialLayout = () => {
-    if (window.location.hash) {
-        const hash = window.location.hash.slice(
-            1,
-        ) as TEMPLATES.ContentGridLayouts[number];
-        if (Object.keys(contentGrid.layouts).includes(hash)) {
-            contentGrid.layout = hash;
-        } else {
-            contentGrid.layout = "Viewer";
-            window.location.hash = "Viewer";
-        }
+  if (window.location.hash) {
+    const hash = window.location.hash.slice(
+      1,
+    ) as TEMPLATES.ContentGridLayouts[number];
+    if (Object.keys(contentGrid.layouts).includes(hash)) {
+      contentGrid.layout = hash;
     } else {
-        window.location.hash = "Viewer";
-        contentGrid.layout = "Viewer";
+      contentGrid.layout = "Viewer";
+      window.location.hash = "Viewer";
     }
+  } else {
+    window.location.hash = "Viewer";
+    contentGrid.layout = "Viewer";
+  }
 };
 
 setInitialLayout();
 
 contentGrid.addEventListener("layoutchange", () => {
-    window.location.hash = contentGrid.layout as string;
+  window.location.hash = contentGrid.layout as string;
 });
 
 const contentGridIcons: Record<TEMPLATES.ContentGridLayouts[number], string> = {
-    Viewer: appIcons.MODEL,
+  Viewer: appIcons.MODEL,
 };
 
 // App Grid Setup
 type AppLayouts = ["App"];
 
 type Sidebar = {
-    name: "sidebar";
-    state: TEMPLATES.GridSidebarState;
+  name: "sidebar";
+  state: TEMPLATES.GridSidebarState;
 };
 
 type ContentGrid = { name: "contentGrid"; state: TEMPLATES.ContentGridState };
@@ -255,33 +261,33 @@ type ContentGrid = { name: "contentGrid"; state: TEMPLATES.ContentGridState };
 type AppGridElements = [Sidebar, ContentGrid];
 
 const app = document.getElementById("app") as BUI.Grid<
-    AppLayouts,
-    AppGridElements
+  AppLayouts,
+  AppGridElements
 >;
 
 app.elements = {
-    sidebar: {
-        template: TEMPLATES.gridSidebarTemplate,
-        initialState: {
-            grid: contentGrid,
-            compact: true,
-            layoutIcons: contentGridIcons,
-        },
+  sidebar: {
+    template: TEMPLATES.gridSidebarTemplate,
+    initialState: {
+      grid: contentGrid,
+      compact: true,
+      layoutIcons: contentGridIcons,
     },
-    contentGrid,
+  },
+  contentGrid,
 };
 
 contentGrid.addEventListener("layoutchange", () =>
-    app.updateComponent.sidebar(),
+  app.updateComponent.sidebar(),
 );
 
 app.layouts = {
-    App: {
-        template: `
+  App: {
+    template: `
       "sidebar contentGrid" 1fr
       /auto 1fr
     `,
-    },
+  },
 };
 
 app.layout = "App";

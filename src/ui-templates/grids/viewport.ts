@@ -3,13 +3,18 @@ import * as OBF from "@thatopen/components-front";
 import * as BUI from "@thatopen/ui";
 import { ViewerToolbarState, viewerToolbarTemplate } from "..";
 import { appIcons } from "../../globals";
+import { finderPanelTemplate } from "../sections/finder";
 
 type BottomToolbar = { name: "bottomToolbar"; state: ViewerToolbarState };
 type LeftToolbar = { name: "leftToolbar"; state: {} };
+type FinderPanel = {
+  name: "finderPanel";
+  state: { components: OBC.Components };
+};
 
-type ViewportGridElements = [BottomToolbar, LeftToolbar];
+type ViewportGridElements = [BottomToolbar, LeftToolbar, FinderPanel];
 
-type ViewportGridLayouts = ["main"];
+type ViewportGridLayouts = ["main", "finder"];
 
 interface ViewportGridState {
   components: OBC.Components;
@@ -66,6 +71,17 @@ export const viewportGridTemplate: BUI.StatefullComponent<ViewportGridState> = (
       update();
     };
 
+    const onToggleTheme = () => {
+      const html = document.documentElement;
+      if (html.classList.contains("bim-ui-dark")) {
+        html.classList.remove("bim-ui-dark");
+        html.classList.add("bim-ui-light");
+      } else {
+        html.classList.remove("bim-ui-light");
+        html.classList.add("bim-ui-dark");
+      }
+    };
+
     return BUI.html`
       <bim-toolbar style="align-self: start;" vertical>
         <bim-toolbar-section>
@@ -75,9 +91,14 @@ export const viewportGridTemplate: BUI.StatefullComponent<ViewportGridState> = (
               <bim-button ?active=${areaMeasurer.enabled} label="Area" @click=${onAreaMeasurement}></bim-button>
             </bim-context-menu>
           </bim-button>
-          <bim-button ?active=${clipper.enabled} @click=${onModelSection} label="Section" tooltip-title="Model Section" icon=${appIcons.CLIPPING}></bim-button> 
-        </bim-toolbar-section>
-      </bim-toolbar>
+              <bim-button ?active=${clipper.enabled} @click=${onModelSection} label="Section" tooltip-title="Model Section" icon=${appIcons.CLIPPING}></bim-button>
+              <bim-button label="Settings" tooltip-title="Settings" icon=${appIcons.DARK}>
+                <bim-context-menu>
+                  <bim-button label="Toggle Theme" @click=${onToggleTheme}></bim-button>
+                </bim-context-menu>
+              </bim-button> 
+             </bim-toolbar-section>
+         </bim-toolbar>
     `;
   };
 
@@ -86,6 +107,10 @@ export const viewportGridTemplate: BUI.StatefullComponent<ViewportGridState> = (
     bottomToolbar: {
       template: viewerToolbarTemplate,
       initialState: { components, world },
+    },
+    finderPanel: {
+      template: finderPanelTemplate,
+      initialState: { components },
     },
   };
 
@@ -101,6 +126,12 @@ export const viewportGridTemplate: BUI.StatefullComponent<ViewportGridState> = (
           "leftToolbar empty rightToolbar" 1fr
           "bottomToolbar bottomToolbar bottomToolbar" auto
           /auto 1fr auto
+        `,
+      },
+      finder: {
+        template: `
+          "finderPanel" 1fr
+          /20rem
         `,
       },
     };

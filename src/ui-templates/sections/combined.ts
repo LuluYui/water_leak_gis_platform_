@@ -18,6 +18,30 @@ export const combinedPanelTemplate: BUI.StatefullComponent<
   const fragments = components.get(OBC.FragmentsManager);
   const highlighter = components.get(OBF.Highlighter);
   const viewpointsManager = components.get(OBC.Viewpoints);
+  const finder = components.get(OBC.ItemsFinder);
+  const hider = components.get(OBC.Hider);
+
+  // Load preset fragments
+  const loadPresetFragments = async () => {
+    const fragPaths = [
+      "https://thatopen.github.io/engine_components/resources/frags/school_arq.frag",
+      "https://thatopen.github.io/engine_components/resources/frags/school_str.frag",
+    ];
+    try {
+      await Promise.all(
+        fragPaths.map(async (path) => {
+          const modelId = path.split("/").pop()?.split(".").shift();
+          if (!modelId) return null;
+          const file = await fetch(path);
+          const buffer = await file.arrayBuffer();
+          return fragments.core.load(buffer, { modelId });
+        }),
+      );
+    } catch (err) {
+      console.warn("Failed to load preset fragments:", err);
+    }
+  };
+  loadPresetFragments();
 
   const [modelsList] = CUI.tables.modelsList({
     components,
@@ -111,14 +135,44 @@ export const combinedPanelTemplate: BUI.StatefullComponent<
     target.loading = false;
   };
 
+  const getFinderResult = async (queryName: string) => {
+    const finderQuery = finder.list.get(queryName);
+    if (!finderQuery) return {};
+    const result = await finderQuery.test();
+    return result;
+  };
+
+  const onIsolateFinder = async (
+    { target }: { target: BUI.Button },
+    queryName: string,
+  ) => {
+    target.loading = true;
+    const modelIdMap = await getFinderResult(queryName);
+    await hider.isolate(modelIdMap);
+    target.loading = false;
+  };
+
+  const onResetVisibilityFinder = async ({
+    target,
+  }: {
+    target: BUI.Button;
+  }) => {
+    target.loading = true;
+    await hider.set(true);
+    target.loading = false;
+  };
+
+  // Create finder queries UI
+  const finderQueries = Array.from(finder.list.keys());
+
   return BUI.html`
         <bim-panel-section icon=${appIcons.LAYOUT} label="All Panels">
-            <div style="display: flex; flex-direction: column; gap: 1rem;">
+        <div style="display: flex; flex-direction: column; gap: 0rem;">
                 <bim-panel-section id=${sectionId} icon=${appIcons.MODEL} label="Models">
                     <div style="display: flex; gap: 0.5rem;">
                         <bim-text-input @input=${onSearchModels} vertical placeholder="Search..." debounce="200"></bim-text-input>
                         <bim-button style="flex: 0;" icon=${appIcons.ADD}>
-                            <bim-context-menu style="gap: 0.25rem;">
+                        <bim-context-menu style="gap: 0.25rem; ">
                                 <bim-button label="IFC" @click=${onAddIfcModel}></bim-button>
                             </bim-context-menu>
                         </bim-button>
@@ -139,6 +193,7 @@ export const combinedPanelTemplate: BUI.StatefullComponent<
                     <bim-button style="flex: 0;" label="Add" icon=${appIcons.ADD} @click=${onCreateViewpoint}></bim-button>
                     ${viewpoints}
                 </bim-panel-section>
+
             </div>
         </bim-panel-section>
     `;

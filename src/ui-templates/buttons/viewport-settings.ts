@@ -40,7 +40,7 @@ export const viewportSettingsTemplate: BUI.StatefullComponent<
   };
 
   return BUI.html`
-    <bim-button style="position: absolute; top: 0.5rem; right: 0.5rem; background-color: transparent;" icon=${appIcons.SETTINGS}>
+  <bim-button style="position: absolute; top: 0.5rem; right: 0.5rem; background-color: transparent;" icon=${appIcons.SETTINGS}>
       <bim-context-menu style="width: 15rem; gap: 0.25rem">
         ${worldEnableCheckbox}
         <bim-dropdown label="Camera Projection" @change=${onProjectionChange}>
