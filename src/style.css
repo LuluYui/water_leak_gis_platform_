@@ -200,3 +200,7 @@ bim-grid[floating] .dashboard-card {
   border-radius: 0.25rem;
   outline: 1px solid var(--bim-ui_bg-contrast-40);
 }
+
+.finder-panel > bim-panel-section {
+  background-color: var(--bim-ui_bg-contrast-10);
+}

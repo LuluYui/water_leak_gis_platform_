@@ -101,7 +101,7 @@ export const finderPanelTemplate: BUI.StatefullComponent<FinderPanelState> = (
         style="position: absolute; top: 10px; left: 10px; z-index: 1000; cursor: move; user-select: none; overflow-x: hidden;"
         @mousedown=${onDragStart}
     >
-        <bim-panel-section icon=${appIcons.SEARCH} label="Finder" style="background: inherit;">
+        <bim-panel-section icon=${appIcons.SEARCH} label="Filter">
             <bim-button style="width: 100%; margin-bottom: 0.5rem;" label="Reset Visibility" @click=${onResetVisibility}></bim-button>
             <div style="display: flex; flex-direction: column; gap: 0.25rem; max-height: 300px; overflow-y: auto; overflow-x: hidden;">
                 ${
