@@ -96,14 +96,9 @@ export const finderPanelTemplate: BUI.StatefullComponent<FinderPanelState> = (
   };
 
   return BUI.html`
-    <div 
-        class="finder-panel" 
-        style="position: absolute; top: 10px; left: 10px; z-index: 1000; cursor: move; user-select: none; overflow-x: hidden;"
-        @mousedown=${onDragStart}
-    >
-        <bim-panel-section icon=${appIcons.SEARCH} label="Filter">
-            <bim-button style="width: 100%; margin-bottom: 0.5rem;" label="Reset Visibility" @click=${onResetVisibility}></bim-button>
-            <div style="display: flex; flex-direction: column; gap: 0.25rem; max-height: 300px; overflow-y: auto; overflow-x: hidden;">
+        <bim-panel-section fixed icon=${appIcons.SEARCH} label="Filter">
+            <bim-button style="width: 100%;" label="Reset Visibility" @click=${onResetVisibility}></bim-button>
+            <bim-panel-section style="gap: 0.25rem; max-height: 300px; overflow-y: hidden; overflow-x: hidden;">
                 ${
                   finderQueries.length > 0
                     ? finderQueries.map(
@@ -116,10 +111,9 @@ export const finderPanelTemplate: BUI.StatefullComponent<FinderPanelState> = (
                                 }}></bim-button>
                             `,
                       )
-                    : BUI.html`<div style="padding: 0.5rem;">No categories found. Load a model first.</div>`
+                    : BUI.html`<bmi-panel-section style="padding: 0.5rem;">No categories found. Load a model first.</bmi-panel-section>`
                 }
-            </div>
+            </bmi-panel-section>
         </bim-panel-section>
-    </div>
 `;
 };

@@ -2,10 +2,10 @@ import * as THREE from "three";
 import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
 import * as BUI from "@thatopen/ui";
+import * as FRAG from "@thatopen/fragments";
 import * as TEMPLATES from "./ui-templates";
 import { appIcons, CONTENT_GRID_ID } from "./globals";
 import { viewportSettingsTemplate } from "./ui-templates/buttons/viewport-settings";
-import { finderPanelTemplate } from "./ui-templates/sections/finder";
 
 BUI.Manager.init();
 
@@ -117,7 +117,97 @@ highlighter.setup({
   },
 });
 
+// Hover Tooltip Setup
+const tooltip = document.createElement("div");
+tooltip.id = "hover-tooltip";
+tooltip.style.cssText = `
+  position: fixed;
+  display: none;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: sans-serif;
+  pointer-events: none;
+  z-index: 1000;
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+document.body.appendChild(tooltip);
+
+// Use raycaster to get element properties
+const raycaster = components.get(OBC.Raycasters).get(world);
+
+let lastHoverKey: string | null = null;
+
+const updateHoverTooltip = async (event: MouseEvent) => {
+  try {
+    const intersection = await raycaster.castRay();
+    if (!intersection) {
+      tooltip.style.display = "none";
+      return;
+    }
+
+    const intersectionAny = intersection as any;
+    const modelId = intersectionAny.fragments?.modelId;
+    const localId = intersectionAny.localId;
+
+    if (!modelId || localId === undefined) {
+      tooltip.style.display = "none";
+      return;
+    }
+
+    const modelIdMap = {
+      [modelId]: new Set([localId]),
+    };
+
+    const modelIdKey = Object.keys(modelIdMap)[0];
+    const modelIdMapAny = modelIdMap as any;
+    const idSet = modelIdMapAny[modelIdKey];
+    if (modelIdKey && idSet && fragments.list.get(modelIdKey)) {
+      const model = fragments.list.get(modelIdKey)!;
+      const [data] = await model.getItemsData([...idSet]);
+      const dataAny = data as any;
+
+      if (dataAny && dataAny.Name && dataAny.Name.value) {
+        tooltip.textContent = dataAny.Name.value;
+        tooltip.style.display = "block";
+        tooltip.style.left = `${event.clientX + 15}px`;
+        tooltip.style.top = `${event.clientY + 15}px`;
+      } else {
+        tooltip.textContent = `LocalID: ${localId}`;
+        tooltip.style.display = "block";
+        tooltip.style.left = `${event.clientX + 15}px`;
+        tooltip.style.top = `${event.clientY + 15}px`;
+      }
+    }
+  } catch (e) {
+    console.warn("Hover error:", e);
+    tooltip.style.display = "none";
+  }
+};
+
+// Hover tooltip on mousemove with debounce
+let hoverTimeout: ReturnType<typeof setTimeout> | null = null;
+
+viewport.addEventListener("mousemove", (event) => {
+  if (hoverTimeout) clearTimeout(hoverTimeout);
+
+  hoverTimeout = setTimeout(() => {
+    updateHoverTooltip(event);
+  }, 150);
+});
+
+viewport.addEventListener("mouseleave", () => {
+  if (hoverTimeout) clearTimeout(hoverTimeout);
+  tooltip.style.display = "none";
+});
+
 // Clipper Setup
+
 const clipper = components.get(OBC.Clipper);
 viewport.ondblclick = () => {
   if (clipper.enabled) clipper.create(world);
@@ -191,11 +281,6 @@ const [viewportSettings] = BUI.Component.create(viewportSettingsTemplate, {
 viewport.append(viewportSettings);
 
 // Viewport Layouts
-const [finder] = BUI.Component.create(finderPanelTemplate, {
-  components,
-});
-
-viewport.append(finder);
 
 const [viewportGrid] = BUI.Component.create(TEMPLATES.viewportGridTemplate, {
   components,

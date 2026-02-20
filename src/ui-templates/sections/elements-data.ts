@@ -5,56 +5,56 @@ import * as OBF from "@thatopen/components-front";
 import { appIcons } from "../../globals";
 
 export interface ElementsDataPanelState {
-  components: OBC.Components;
+    components: OBC.Components;
 }
 
 export const elementsDataPanelTemplate: BUI.StatefullComponent<
-  ElementsDataPanelState
+    ElementsDataPanelState
 > = (state) => {
-  const { components } = state;
+    const { components } = state;
 
-  // const fragments = components.get(OBC.FragmentsManager);
-  const highlighter = components.get(OBF.Highlighter);
+    // const fragments = components.get(OBC.FragmentsManager);
+    const highlighter = components.get(OBF.Highlighter);
 
-  const [propsTable, updatePropsTable] = CUI.tables.itemsData({
-    components,
-    modelIdMap: {},
-  });
+    const [propsTable, updatePropsTable] = CUI.tables.itemsData({
+        components,
+        modelIdMap: {},
+    });
 
-  propsTable.preserveStructureOnFilter = true;
-  // fragments.onFragmentsDisposed.add(() => updatePropsTable());
+    propsTable.preserveStructureOnFilter = true;
+    // fragments.onFragmentsDisposed.add(() => updatePropsTable());
 
-  highlighter.events.select.onHighlight.add((modelIdMap) => {
-    // const panel = document.getElementById("data")!;
-    // panel.style.removeProperty("display");
-    updatePropsTable({ modelIdMap });
-  });
+    highlighter.events.select.onHighlight.add((modelIdMap) => {
+        // const panel = document.getElementById("data")!;
+        // panel.style.removeProperty("display");
+        updatePropsTable({ modelIdMap });
+    });
 
-  highlighter.events.select.onClear.add(() => {
-    // const panel = document.getElementById("data")!;
-    // panel.style.display = "none";
-    updatePropsTable({ modelIdMap: {} });
-  });
+    highlighter.events.select.onClear.add(() => {
+        // const panel = document.getElementById("data")!;
+        // panel.style.display = "none";
+        updatePropsTable({ modelIdMap: {} });
+    });
 
-  const search = (e: Event) => {
-    const input = e.target as BUI.TextInput;
-    propsTable.queryString = input.value;
-  };
+    const search = (e: Event) => {
+        const input = e.target as BUI.TextInput;
+        propsTable.queryString = input.value;
+    };
 
-  const toggleExpanded = () => {
-    propsTable.expanded = !propsTable.expanded;
-  };
+    const toggleExpanded = () => {
+        propsTable.expanded = !propsTable.expanded;
+    };
 
-  const sectionId = BUI.Manager.newRandomId();
+    const sectionId = BUI.Manager.newRandomId();
 
-  const toggleCollapsed = () => {
-    const section = document.getElementById(sectionId) as BUI.PanelSection;
-    if (section) {
-      section.collapsed = !section.collapsed;
-    }
-  };
+    const toggleCollapsed = () => {
+        const section = document.getElementById(sectionId) as BUI.PanelSection;
+        if (section) {
+            section.collapsed = !section.collapsed;
+        }
+    };
 
-  return BUI.html`
+    return BUI.html`
     <bim-panel-section collapsed id=${sectionId} icon=${appIcons.TASK} label="Selection Data">
       <div style="display: flex; gap: 0.375rem; align-items: center;">
         <bim-text-input @input=${search} vertical placeholder="Search..." debounce="200"></bim-text-input>

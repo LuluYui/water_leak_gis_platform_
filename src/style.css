@@ -78,6 +78,10 @@ html {
   font-size: 17px;
 }
 
+div {
+  overflow: hidden;
+}
+
 bim-grid[floating] {
   z-index: 100;
 }
@@ -98,7 +102,14 @@ bim-grid:not([floating]) > bim-panel {
 
 bim-panel-section {
   --bim-panel-section_hc: var(--bim-ui_accent-base);
-  overflow: auto;
+  background-color: var(--bim-ui_bg-contrast-10);
+  overflow: hidden;
+}
+
+bim-grid[floating] > bim-panel-section {
+  --bim-panel-section_hc: var(--bim-ui_accent-base);
+  background-color: var(--bim-ui_bg-contrast-10);
+  overflow: hidden;
 }
 
 bim-panel-section > bim-table {
@@ -161,7 +172,7 @@ bim-context-menu bim-button:hover {
   outline: 1px solid var(--bim-ui_bg-contrast-40);
   background-color: var(--bim-ui_bg-contrast-10);
   /* background-color: transparent; */
-  overflow: auto;
+  overflow: hidden;
 }
 
 bim-grid[floating] .dashboard-card {
@@ -195,12 +206,12 @@ bim-grid[floating] .dashboard-card {
   gap: 0.5rem;
 }
 
-.finder-panel {
-  background-color: var(--bim-ui_bg-contrast-10);
-  border-radius: 0.25rem;
-  outline: 1px solid var(--bim-ui_bg-contrast-40);
-}
+/* .finder-panel { */
+/*   background-color: var(--bim-ui_bg-contrast-10); */
+/*   border-radius: 0.25rem; */
+/*   outline: 1px solid var(--bim-ui_bg-contrast-40); */
+/* } */
 
-.finder-panel > bim-panel-section {
-  background-color: var(--bim-ui_bg-contrast-10);
-}
+/* .finder-panel > bim-panel-section { */
+/*   background-color: var(--bim-ui_bg-contrast-10); */
+/* } */

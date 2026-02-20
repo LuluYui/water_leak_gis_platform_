@@ -42,7 +42,7 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
       Viewer: {
         template: `
                     "viewer combined" 1fr
-                    /1fr 15rem
+                    /1fr 25rem
                 `,
       },
     };

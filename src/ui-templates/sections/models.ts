@@ -15,6 +15,10 @@ export const modelsPanelTemplate: BUI.StatefullComponent<ModelsPanelState> = (
   const ifcLoader = components.get(OBC.IfcLoader);
   const fragments = components.get(OBC.FragmentsManager);
 
+  const initFragments = () => {
+    fragments.init("/node_modules/@thatopen/fragments/dist/Worker/worker.mjs");
+  };
+
   const [modelsList] = CUI.tables.modelsList({
     components,
     actions: { download: false },
@@ -84,6 +88,7 @@ export const modelsPanelTemplate: BUI.StatefullComponent<ModelsPanelState> = (
 
   const onCreated = (e?: Element) => {
     if (!e) return;
+    initFragments();
     // loadPreset();
     // Load preset fragments
     const fragPaths = [

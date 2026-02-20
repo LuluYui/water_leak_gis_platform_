@@ -87,6 +87,30 @@ export const combinedPanelTemplate: BUI.StatefullComponent<
     input.click();
   };
 
+  const onAddFragmentsModel = async ({ target }: { target: BUI.Button }) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.multiple = false;
+    input.accept = ".frag";
+
+    input.addEventListener("change", async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      target.loading = true;
+      const buffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      await fragments.core.load(bytes, {
+        modelId: file.name.replace(".frag", ""),
+      });
+      target.loading = false;
+      BUI.ContextMenu.removeMenus();
+    });
+
+    input.addEventListener("cancel", () => (target.loading = false));
+
+    input.click();
+  };
+
   const onSearchModels = (e: Event) => {
     const input = e.target as BUI.TextInput;
     modelsList.queryString = input.value;
@@ -167,13 +191,14 @@ export const combinedPanelTemplate: BUI.StatefullComponent<
 
   return BUI.html`
         <bim-panel-section icon=${appIcons.LAYOUT} label="All Panels">
-        <div style="display: flex; flex-direction: column; gap: 0rem;">
+        <div style="display: flex; flex-direction: column; gap: 0rem; overflow:hidden">
                 <bim-panel-section id=${sectionId} icon=${appIcons.MODEL} label="Models">
                     <div style="display: flex; gap: 0.5rem;">
                         <bim-text-input @input=${onSearchModels} vertical placeholder="Search..." debounce="200"></bim-text-input>
                         <bim-button style="flex: 0;" icon=${appIcons.ADD}>
                         <bim-context-menu style="gap: 0.25rem; ">
                                 <bim-button label="IFC" @click=${onAddIfcModel}></bim-button>
+                                <bim-button label="Fragments" @click=${onAddFragmentsModel}></bim-button>
                             </bim-context-menu>
                         </bim-button>
                     </div>

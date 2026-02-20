@@ -4,6 +4,7 @@ import * as BUI from "@thatopen/ui";
 import { ViewerToolbarState, viewerToolbarTemplate } from "..";
 import { appIcons } from "../../globals";
 import { finderPanelTemplate } from "../sections/finder";
+import { raycasterPanelTemplate } from "../sections/raycaster";
 
 type BottomToolbar = { name: "bottomToolbar"; state: ViewerToolbarState };
 type LeftToolbar = { name: "leftToolbar"; state: {} };
@@ -11,8 +12,17 @@ type FinderPanel = {
   name: "finderPanel";
   state: { components: OBC.Components };
 };
+type RaycasterPanel = {
+  name: "raycasterPanel";
+  state: { components: OBC.Components };
+};
 
-type ViewportGridElements = [BottomToolbar, LeftToolbar, FinderPanel];
+type ViewportGridElements = [
+  BottomToolbar,
+  LeftToolbar,
+  FinderPanel,
+  RaycasterPanel,
+];
 
 type ViewportGridLayouts = ["main", "finder"];
 
@@ -112,6 +122,10 @@ export const viewportGridTemplate: BUI.StatefullComponent<ViewportGridState> = (
       template: finderPanelTemplate,
       initialState: { components },
     },
+    raycasterPanel: {
+      template: raycasterPanelTemplate,
+      initialState: { components },
+    },
   };
 
   const onCreated = (e?: Element) => {
@@ -122,8 +136,8 @@ export const viewportGridTemplate: BUI.StatefullComponent<ViewportGridState> = (
     grid.layouts = {
       main: {
         template: `
-          "leftToolbar messages rightToolbar" auto
-          "leftToolbar empty rightToolbar" 1fr
+          "leftToolbar empty raycasterPanel" auto
+          "leftToolbar empty finderPanel" 1fr
           "bottomToolbar bottomToolbar bottomToolbar" auto
           /auto 1fr auto
         `,

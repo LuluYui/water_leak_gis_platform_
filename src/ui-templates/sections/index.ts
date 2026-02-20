@@ -3,3 +3,4 @@ export * from "./elements-data";
 export * from "./viewpoints";
 export * from "./combined";
 export * from "./finder";
+export * from "./raycaster";
