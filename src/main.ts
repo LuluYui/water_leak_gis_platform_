@@ -1,11 +1,14 @@
-import * as THREE from "three";
 import * as OBC from "@thatopen/components";
+import * as THREE from "three";
 import * as OBF from "@thatopen/components-front";
 import * as BUI from "@thatopen/ui";
-import * as FRAG from "@thatopen/fragments";
 import * as TEMPLATES from "./ui-templates";
 import { appIcons, CONTENT_GRID_ID } from "./globals";
 import { viewportSettingsTemplate } from "./ui-templates/buttons/viewport-settings";
+import {
+  getFlowMetersCoordinates,
+  createFlowMeterMarkers,
+} from "./utils/getFlowMeters";
 
 BUI.Manager.init();
 
@@ -35,41 +38,24 @@ world.camera.threePersp.near = 0.01;
 world.camera.threePersp.updateProjectionMatrix();
 world.camera.controls.restThreshold = 0.05;
 
+// world.camera.controls.addEventListener("control", () => {
+//   const controls = world.camera.controls as any;
+//   console.log(world.camera.three);
+
+//   console.log("Camera position:", {
+//     position: world.camera.three.position.toArray(),
+//     zoom: world.camera.three.zoom,
+//   });
+// });
+
 const worldGrid = components.get(OBC.Grids).create(world);
 worldGrid.material.uniforms.uColor.value = new THREE.Color(0x494b50);
 worldGrid.material.uniforms.uSize1.value = 2;
 worldGrid.material.uniforms.uSize2.value = 8;
 
 const resizeWorld = () => {
-  const { width, height } = viewport.getBoundingClientRect();
-  if (width === 0 || height === 0) return;
-  world.renderer.resize();
+  world.renderer?.resize();
   world.camera.updateAspect();
-
-  const { postproduction } = world.renderer;
-  if (postproduction.enabled) return;
-
-  postproduction.enabled = true;
-  postproduction.style = OBF.PostproductionAspect.COLOR_SHADOWS;
-  postproduction.edgesPass.color = new THREE.Color("skyblue");
-  postproduction.aoPass.updateGtaoMaterial({
-    radius: 0.25,
-    distanceExponent: 1,
-    thickness: 1,
-    scale: 1,
-    samples: 16,
-    distanceFallOff: 1,
-    screenSpaceRadius: true,
-  });
-  postproduction.aoPass.updatePdMaterial({
-    lumaPhi: 10,
-    depthPhi: 2,
-    normalPhi: 3,
-    radius: 4,
-    radiusExponent: 1,
-    rings: 2,
-    samples: 16,
-  });
 };
 
 viewport.addEventListener("resize", resizeWorld);
@@ -86,7 +72,12 @@ fragments.init("/node_modules/@thatopen/fragments/dist/Worker/worker.mjs");
 fragments.core.models.materials.list.onItemSet.add(({ value: material }) => {
   const isLod = "isLodMaterial" in material && material.isLodMaterial;
   if (isLod) {
-    world.renderer!.postproduction.basePass.isolatedMaterials.push(material);
+    const renderer = world.renderer;
+    if (renderer && (renderer as any).postproduction?.enabled) {
+      (renderer as any).postproduction.basePass.isolatedMaterials.push(
+        material,
+      );
+    }
   }
 });
 
@@ -117,6 +108,25 @@ highlighter.setup({
   },
 });
 
+// Coordinate Display Setup
+const coordDisplay = document.createElement("div");
+coordDisplay.id = "coord-display";
+coordDisplay.style.cssText = `
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: monospace;
+  z-index: 1000;
+  pointer-events: none;
+`;
+coordDisplay.textContent = "X: 0.000  Y: 0.000  Z: 0.000";
+document.body.appendChild(coordDisplay);
+
 // Hover Tooltip Setup
 const tooltip = document.createElement("div");
 tooltip.id = "hover-tooltip";
@@ -141,8 +151,6 @@ document.body.appendChild(tooltip);
 // Use raycaster to get element properties
 const raycaster = components.get(OBC.Raycasters).get(world);
 
-let lastHoverKey: string | null = null;
-
 const updateHoverTooltip = async (event: MouseEvent) => {
   try {
     const intersection = await raycaster.castRay();
@@ -154,9 +162,21 @@ const updateHoverTooltip = async (event: MouseEvent) => {
     const intersectionAny = intersection as any;
     const modelId = intersectionAny.fragments?.modelId;
     const localId = intersectionAny.localId;
+    const point = intersectionAny.point;
+
+    let tooltipContent = "";
+
+    if (point) {
+      tooltipContent += `X: ${point.x.toFixed(3)}  Y: ${point.y.toFixed(3)}  Z: ${point.z.toFixed(3)}\n`;
+    }
 
     if (!modelId || localId === undefined) {
-      tooltip.style.display = "none";
+      tooltip.style.display = "block";
+      tooltip.textContent = point
+        ? `X: ${point.x.toFixed(3)}  Y: ${point.y.toFixed(3)}  Z: ${point.z.toFixed(3)}\n`
+        : "No data";
+      tooltip.style.left = `${event.clientX + 15}px`;
+      tooltip.style.top = `${event.clientY + 15}px`;
       return;
     }
 
@@ -172,17 +192,21 @@ const updateHoverTooltip = async (event: MouseEvent) => {
       const [data] = await model.getItemsData([...idSet]);
       const dataAny = data as any;
 
+      let nameInfo = "";
       if (dataAny && dataAny.Name && dataAny.Name.value) {
-        tooltip.textContent = dataAny.Name.value;
-        tooltip.style.display = "block";
-        tooltip.style.left = `${event.clientX + 15}px`;
-        tooltip.style.top = `${event.clientY + 15}px`;
+        nameInfo = dataAny.Name.value;
       } else {
-        tooltip.textContent = `LocalID: ${localId}`;
-        tooltip.style.display = "block";
-        tooltip.style.left = `${event.clientX + 15}px`;
-        tooltip.style.top = `${event.clientY + 15}px`;
+        nameInfo = `LocalID: ${localId}`;
       }
+
+      const coordInfo = point
+        ? `X: ${point.x.toFixed(3)}  Y: ${point.y.toFixed(3)}  Z: ${point.z.toFixed(3)}\n`
+        : "";
+
+      tooltip.textContent = coordInfo ? `${coordInfo}\n${nameInfo}` : nameInfo;
+      tooltip.style.display = "block";
+      tooltip.style.left = `${event.clientX + 15}px`;
+      tooltip.style.top = `${event.clientY + 15}px`;
     }
   } catch (e) {
     console.warn("Hover error:", e);
@@ -193,7 +217,20 @@ const updateHoverTooltip = async (event: MouseEvent) => {
 // Hover tooltip on mousemove with debounce
 let hoverTimeout: ReturnType<typeof setTimeout> | null = null;
 
-viewport.addEventListener("mousemove", (event) => {
+viewport.addEventListener("mousemove", async (event) => {
+  // Update coordinate display
+  try {
+    const intersection = await raycaster.castRay();
+    if (intersection) {
+      const point = (intersection as any).point;
+      if (point) {
+        coordDisplay.textContent = `X: ${point.x.toFixed(3)}  Y: ${point.y.toFixed(3)}  Z: ${point.z.toFixed(3)}`;
+      }
+    }
+  } catch (e) {
+    // Ignore
+  }
+
   if (hoverTimeout) clearTimeout(hoverTimeout);
 
   hoverTimeout = setTimeout(() => {
@@ -204,6 +241,7 @@ viewport.addEventListener("mousemove", (event) => {
 viewport.addEventListener("mouseleave", () => {
   if (hoverTimeout) clearTimeout(hoverTimeout);
   tooltip.style.display = "none";
+  coordDisplay.textContent = "X: ---  Y: ---  Z: ---";
 });
 
 // Clipper Setup
@@ -231,7 +269,6 @@ lengthMeasurer.list.onItemAdded.add((line) => {
   const sphere = new THREE.Sphere(center, radius);
   world.camera.controls.fitToSphere(sphere, true);
 });
-
 viewport.addEventListener("dblclick", () => lengthMeasurer.create());
 
 window.addEventListener("keydown", (event) => {
@@ -270,6 +307,49 @@ fragments.list.onItemSet.add(async ({ value: model }) => {
   };
   world.scene.three.add(model.object);
   await fragments.core.update(true);
+
+  // Get flow meters coordinates
+  const flowMeters = await getFlowMetersCoordinates(components);
+  console.log("Flow meters coordinates:", flowMeters);
+
+  // Create flow meter markers
+  await createFlowMeterMarkers(components, world);
+
+  // // Focus camera on the whole model
+
+  const cameraParams = {
+    position: [-100.02444471916911, 76.71981181813236, 147.52360266400538] as [
+      number,
+      number,
+      number,
+    ],
+    target: [
+      -0.9673284470144092, -300.029239272786138, -300.0409506923764018,
+    ] as [number, number, number],
+  };
+
+  // const center = new THREE.Vector3(-116, 0, 30);
+  // const radius = 40;
+  // const sphere = new THREE.Sphere(center, radius);
+
+  // world.camera.controls.fitToSphere(sphere, true);
+  const controls = world.camera.controls;
+  const currentDistance = 100;
+  const newTarget = new THREE.Vector3(-116, 0, 30);
+  const newPosition = new THREE.Vector3(-50, 70, 70);
+  controls.setLookAt(
+    newPosition.x,
+    newPosition.y,
+    newPosition.z,
+    newTarget.x,
+    newTarget.y,
+    newTarget.z,
+  );
+
+  // world.camera.controls.setLookAt(
+  //   ...cameraParams.position,
+  //   ...cameraParams.target,
+  // );
 });
 
 // Viewport Layouts

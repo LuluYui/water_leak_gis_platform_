@@ -42,7 +42,7 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
       Viewer: {
         template: `
                     "viewer combined" 1fr
-                    /1fr 25rem
+                    /1fr 30rem
                 `,
       },
     };
@@ -52,7 +52,6 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
         <bim-grid id=${state.id} style="padding: ${CONTENT_GRID_GAP}; gap: ${CONTENT_GRID_GAP}" ${BUI.ref(onCreated)}></bim-grid>
     `;
 };
-
 export const getContentGrid = () => {
   const contentGrid = document.getElementById(CONTENT_GRID_ID) as BUI.Grid<
     ContentGridLayouts,

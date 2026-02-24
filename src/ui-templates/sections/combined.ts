@@ -18,15 +18,10 @@ export const combinedPanelTemplate: BUI.StatefullComponent<
   const fragments = components.get(OBC.FragmentsManager);
   const highlighter = components.get(OBF.Highlighter);
   const viewpointsManager = components.get(OBC.Viewpoints);
-  const finder = components.get(OBC.ItemsFinder);
-  const hider = components.get(OBC.Hider);
 
   // Load preset fragments
   const loadPresetFragments = async () => {
-    const fragPaths = [
-      "https://thatopen.github.io/engine_components/resources/frags/school_arq.frag",
-      "https://thatopen.github.io/engine_components/resources/frags/school_str.frag",
-    ];
+    const fragPaths = ["/water_mains.frag"];
     try {
       await Promise.all(
         fragPaths.map(async (path) => {
@@ -111,6 +106,26 @@ export const combinedPanelTemplate: BUI.StatefullComponent<
     input.click();
   };
 
+  const onExportFragmentsModel = async ({ target }: { target: BUI.Button }) => {
+    target.loading = true;
+    try {
+      for (const [, model] of fragments.list) {
+        const buffer = await model.getBuffer(false);
+        const blob = new Blob([buffer], { type: "application/octet-stream" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${model.modelId}.frag`;
+        link.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch (e) {
+      console.warn("Failed to export model:", e);
+    }
+    target.loading = false;
+    BUI.ContextMenu.removeMenus();
+  };
+
   const onSearchModels = (e: Event) => {
     const input = e.target as BUI.TextInput;
     modelsList.queryString = input.value;
@@ -126,15 +141,6 @@ export const combinedPanelTemplate: BUI.StatefullComponent<
   };
 
   const sectionId = BUI.Manager.newRandomId();
-  let isSectionCollapsed = true;
-
-  const toggleSection = () => {
-    const section = document.getElementById(sectionId) as BUI.PanelSection;
-    if (section) {
-      isSectionCollapsed = !isSectionCollapsed;
-      section.collapsed = isSectionCollapsed;
-    }
-  };
 
   const onCreateViewpoint = async ({ target }: { target: BUI.Button }) => {
     target.loading = true;
@@ -159,35 +165,7 @@ export const combinedPanelTemplate: BUI.StatefullComponent<
     target.loading = false;
   };
 
-  const getFinderResult = async (queryName: string) => {
-    const finderQuery = finder.list.get(queryName);
-    if (!finderQuery) return {};
-    const result = await finderQuery.test();
-    return result;
-  };
-
-  const onIsolateFinder = async (
-    { target }: { target: BUI.Button },
-    queryName: string,
-  ) => {
-    target.loading = true;
-    const modelIdMap = await getFinderResult(queryName);
-    await hider.isolate(modelIdMap);
-    target.loading = false;
-  };
-
-  const onResetVisibilityFinder = async ({
-    target,
-  }: {
-    target: BUI.Button;
-  }) => {
-    target.loading = true;
-    await hider.set(true);
-    target.loading = false;
-  };
-
   // Create finder queries UI
-  const finderQueries = Array.from(finder.list.keys());
 
   return BUI.html`
         <bim-panel-section icon=${appIcons.LAYOUT} label="All Panels">
@@ -201,6 +179,7 @@ export const combinedPanelTemplate: BUI.StatefullComponent<
                                 <bim-button label="Fragments" @click=${onAddFragmentsModel}></bim-button>
                             </bim-context-menu>
                         </bim-button>
+                        <bim-button style="flex: 0;" icon=${appIcons.EXPORT} tooltip-title="Export to Fragments" @click=${onExportFragmentsModel}></bim-button>
                     </div>
                     ${modelsList}
                 </bim-panel-section>

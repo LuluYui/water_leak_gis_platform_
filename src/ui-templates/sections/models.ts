@@ -15,10 +15,6 @@ export const modelsPanelTemplate: BUI.StatefullComponent<ModelsPanelState> = (
   const ifcLoader = components.get(OBC.IfcLoader);
   const fragments = components.get(OBC.FragmentsManager);
 
-  const initFragments = () => {
-    fragments.init("/node_modules/@thatopen/fragments/dist/Worker/worker.mjs");
-  };
-
   const [modelsList] = CUI.tables.modelsList({
     components,
     actions: { download: false },
@@ -66,7 +62,6 @@ export const modelsPanelTemplate: BUI.StatefullComponent<ModelsPanelState> = (
     });
 
     input.addEventListener("cancel", () => (target.loading = false));
-
     input.click();
   };
 
@@ -75,46 +70,8 @@ export const modelsPanelTemplate: BUI.StatefullComponent<ModelsPanelState> = (
     modelsList.queryString = input.value;
   };
 
-  const loadPreset = async () => {
-    try {
-      const response = await fetch("/model.ifc");
-      const buffer = await response.arrayBuffer();
-      const bytes = new Uint8Array(buffer);
-      await ifcLoader.load(bytes, true, "model");
-    } catch (e) {
-      console.warn("Failed to load preset model:", e);
-    }
-  };
-
-  const onCreated = (e?: Element) => {
-    if (!e) return;
-    initFragments();
-    // loadPreset();
-    // Load preset fragments
-    const fragPaths = [
-      "https://thatopen.github.io/engine_components/resources/frags/school_arq.frag",
-      "https://thatopen.github.io/engine_components/resources/frags/school_str.frag",
-    ];
-
-    Promise.all(
-      fragPaths.map(async (path) => {
-        try {
-          const modelId = path.split("/").pop()?.split(".").shift();
-          if (!modelId) return null;
-          const file = await fetch(path);
-          const buffer = await file.arrayBuffer();
-          console.log("loading model");
-          return fragments.core.load(buffer, { modelId });
-        } catch (err) {
-          console.warn("Failed to load fragment:", err);
-          return null;
-        }
-      }),
-    );
-  };
-
   return BUI.html`
-    <bim-panel-section ${BUI.ref(onCreated)} fixed icon=${appIcons.MODEL} label="Models">
+    <bim-panel-section fixed icon=${appIcons.MODEL} label="Models">
       <div style="display: flex; gap: 0.5rem;">
         <bim-text-input @input=${onSearch} vertical placeholder="Search..." debounce="200"></bim-text-input>
         <bim-button style="flex: 0;" icon=${appIcons.ADD}>

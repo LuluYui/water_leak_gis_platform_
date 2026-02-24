@@ -104,6 +104,7 @@ bim-panel-section {
   --bim-panel-section_hc: var(--bim-ui_accent-base);
   background-color: var(--bim-ui_bg-contrast-10);
   overflow: hidden;
+  height: fit-content;
 }
 
 bim-grid[floating] > bim-panel-section {
@@ -114,6 +115,13 @@ bim-grid[floating] > bim-panel-section {
 
 bim-panel-section > bim-table {
   flex: 1;
+}
+
+bim-table bim-cell,
+bim-table bim-cell-content {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
 }
 
 :not(bim-panel) > bim-panel-section {
