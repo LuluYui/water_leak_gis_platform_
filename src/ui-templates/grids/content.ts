@@ -30,6 +30,8 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
     if (!e) return;
     const grid = e as BUI.Grid<ContentGridLayouts, ContentGridElements>;
 
+    (grid as any).resizeableAreas = true;
+
     grid.elements = {
       combined: {
         template: TEMPLATES.combinedPanelTemplate,
@@ -49,7 +51,7 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
   };
 
   return BUI.html`
-        <bim-grid id=${state.id} style="padding: ${CONTENT_GRID_GAP}; gap: ${CONTENT_GRID_GAP}" ${BUI.ref(onCreated)}></bim-grid>
+        <bim-grid id=${state.id} resizeable-areas style="padding: ${CONTENT_GRID_GAP}; gap: ${CONTENT_GRID_GAP}" ${BUI.ref(onCreated)}></bim-grid>
     `;
 };
 export const getContentGrid = () => {

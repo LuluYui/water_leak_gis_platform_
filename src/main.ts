@@ -12,6 +12,61 @@ import {
 
 BUI.Manager.init();
 
+interface HK80Offset {
+  easting: number;
+  northing: number;
+  elevation: number;
+}
+
+let hk80Offset: HK80Offset | null = null;
+
+function parseHK80OffsetFromIFC(ifcContent: string): HK80Offset | null {
+  const matches = ifcContent.matchAll(
+    /IFCCARTESIANPOINT\(\((\d+\.?\d*),\s*(\d+\.?\d*),\s*(\d+\.?\d*)\)\)/g,
+  );
+
+  for (const match of matches) {
+    const x = parseFloat(match[1]);
+    const y = parseFloat(match[2]);
+    const z = parseFloat(match[3]);
+
+    if (x > 100000 && y > 100000) {
+      console.log("Parsed HK80 offset from IFC:", {
+        easting: x,
+        northing: y,
+        elevation: z,
+      });
+      return {
+        easting: x,
+        northing: y,
+        elevation: z,
+      };
+    }
+  }
+  return null;
+}
+
+function toHK80(
+  x: number,
+  y: number,
+  z: number,
+): { easting: number; northing: number; elevation: number } | null {
+  if (!hk80Offset) return null;
+  return {
+    easting: x + hk80Offset.easting / 1000,
+    northing: y + hk80Offset.northing / 1000,
+    elevation: z,
+  };
+}
+
+function formatHK80Coord(hk80: {
+  easting: number;
+  northing: number;
+  elevation: number;
+}): string {
+  return `E: ${hk80.easting.toFixed(3)}  N: ${hk80.northing.toFixed(3)}  El: ${hk80.elevation.toFixed(3)} m`;
+}
+
 // Components Setup
 
 const components = new OBC.Components();
@@ -124,7 +179,7 @@ coordDisplay.style.cssText = `
   z-index: 1000;
   pointer-events: none;
 `;
-coordDisplay.textContent = "X: 0.000  Y: 0.000  Z: 0.000";
+coordDisplay.textContent = "E: ---  N: ---  El: --- m";
 document.body.appendChild(coordDisplay);
 
 // Hover Tooltip Setup
@@ -142,7 +197,7 @@ tooltip.style.cssText = `
   pointer-events: none;
   z-index: 1000;
   max-width: 300px;
-  white-space: nowrap;
+  white-space: pre-wrap;
   overflow: hidden;
   text-overflow: ellipsis;
 `;
@@ -167,13 +222,22 @@ const updateHoverTooltip = async (event: MouseEvent) => {
     let tooltipContent = "";
 
     if (point) {
-      tooltipContent += `X: ${point.x.toFixed(3)}  Y: ${point.y.toFixed(3)}  Z: ${point.z.toFixed(3)}\n`;
+      if (hk80Offset) {
+        const hk80 = toHK80(point.x, point.y, point.z);
+        if (hk80) {
+          tooltipContent += formatHK80Coord(hk80);
+        }
+      } else {
+        tooltipContent += `X: ${point.x.toFixed(3)}  Y: ${point.y.toFixed(3)}  Z: ${point.z.toFixed(3)}`;
+      }
     }
 
     if (!modelId || localId === undefined) {
       tooltip.style.display = "block";
       tooltip.textContent = point
-        ? `X: ${point.x.toFixed(3)}  Y: ${point.y.toFixed(3)}  Z: ${point.z.toFixed(3)}\n`
+        ? hk80Offset
+          ? formatHK80Coord(toHK80(point.x, point.y, point.z)!) + "\n"
+          : `X: ${point.x.toFixed(3)}  Y: ${point.y.toFixed(3)}  Z: ${point.z.toFixed(3)}\n`
         : "No data";
       tooltip.style.left = `${event.clientX + 15}px`;
       tooltip.style.top = `${event.clientY + 15}px`;
@@ -199,11 +263,19 @@ const updateHoverTooltip = async (event: MouseEvent) => {
         nameInfo = `LocalID: ${localId}`;
       }
 
-      const coordInfo = point
-        ? `X: ${point.x.toFixed(3)}  Y: ${point.y.toFixed(3)}  Z: ${point.z.toFixed(3)}\n`
-        : "";
+      let coordInfo = "";
+      if (point) {
+        if (hk80Offset) {
+          const hk80 = toHK80(point.x, point.y, point.z);
+          if (hk80) {
+            coordInfo = formatHK80Coord(hk80) + "\n";
+          }
+        } else {
+          coordInfo = `X: ${point.x.toFixed(3)}  Y: ${point.y.toFixed(3)}  Z: ${point.z.toFixed(3)}\n`;
+        }
+      }
 
-      tooltip.textContent = coordInfo ? `${coordInfo}\n${nameInfo}` : nameInfo;
+      tooltip.textContent = coordInfo ? `${coordInfo}${nameInfo}` : nameInfo;
       tooltip.style.display = "block";
       tooltip.style.left = `${event.clientX + 15}px`;
       tooltip.style.top = `${event.clientY + 15}px`;
@@ -224,7 +296,14 @@ viewport.addEventListener("mousemove", async (event) => {
     if (intersection) {
       const point = (intersection as any).point;
       if (point) {
-        coordDisplay.textContent = `X: ${point.x.toFixed(3)}  Y: ${point.y.toFixed(3)}  Z: ${point.z.toFixed(3)}`;
+        if (hk80Offset) {
+          const hk80 = toHK80(point.x, point.y, point.z);
+          if (hk80) {
+            coordDisplay.textContent = formatHK80Coord(hk80);
+          }
+        } else {
+          coordDisplay.textContent = `X: ${point.x.toFixed(3)}  Y: ${point.y.toFixed(3)}  Z: ${point.z.toFixed(3)}`;
+        }
       }
     }
   } catch (e) {
@@ -241,10 +320,10 @@ viewport.addEventListener("mousemove", async (event) => {
 viewport.addEventListener("mouseleave", () => {
   if (hoverTimeout) clearTimeout(hoverTimeout);
   tooltip.style.display = "none";
-  coordDisplay.textContent = "X: ---  Y: ---  Z: ---";
+  coordDisplay.textContent = "E: ---  N: ---  El: --- m";
 });
 
-// Clipper Setup
+// clipper Setup
 
 const clipper = components.get(OBC.Clipper);
 viewport.ondblclick = () => {
@@ -308,6 +387,22 @@ fragments.list.onItemSet.add(async ({ value: model }) => {
   world.scene.three.add(model.object);
   await fragments.core.update(true);
 
+  // Parse HK80 offset from IFC if not already set
+  if (!hk80Offset) {
+    try {
+      const ifcResponse = await fetch("/water_mains.ifc");
+      if (ifcResponse.ok) {
+        const ifcContent = await ifcResponse.text();
+        const parsed = parseHK80OffsetFromIFC(ifcContent);
+        if (parsed) {
+          hk80Offset = parsed;
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to parse HK80 offset from IFC:", e);
+    }
+  }
+
   // Get flow meters coordinates
   const flowMeters = await getFlowMetersCoordinates(components);
   console.log("Flow meters coordinates:", flowMeters);
@@ -328,11 +423,6 @@ fragments.list.onItemSet.add(async ({ value: model }) => {
     ] as [number, number, number],
   };
 
-  // const center = new THREE.Vector3(-116, 0, 30);
-  // const radius = 40;
-  // const sphere = new THREE.Sphere(center, radius);
-
-  // world.camera.controls.fitToSphere(sphere, true);
   const controls = world.camera.controls;
   const currentDistance = 100;
   const newTarget = new THREE.Vector3(-116, 0, 30);
