@@ -126,7 +126,7 @@ export const createFlowMeterMarkers = async (
       `;
     });
 
-    const offset = new THREE.Vector3(0, 2, 0);
+    const offset = new THREE.Vector3(0, 0, 0);
     const markerPosition = flowMeter.position.clone().add(offset);
 
     marker.create(world, element, markerPosition);

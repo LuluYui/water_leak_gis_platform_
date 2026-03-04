@@ -52,13 +52,22 @@ export const combinedPanelTemplate: BUI.StatefullComponent<
 
   propsTable.preserveStructureOnFilter = true;
 
-  highlighter.events.select.onHighlight.add((modelIdMap) => {
-    updatePropsTable({ modelIdMap });
-  });
+  const setupEvents = () => {
+    if (highlighter.events.select) {
+      highlighter.events.select.onHighlight.add((modelIdMap) => {
+        updatePropsTable({ modelIdMap });
+      });
+      highlighter.events.select.onClear.add(() => {
+        updatePropsTable({ modelIdMap: {} });
+      });
+    }
+  };
 
-  highlighter.events.select.onClear.add(() => {
-    updatePropsTable({ modelIdMap: {} });
-  });
+  if (highlighter.isSetup) {
+    setupEvents();
+  } else {
+    highlighter.onSetup.add(() => setupEvents());
+  }
 
   const onAddIfcModel = async ({ target }: { target: BUI.Button }) => {
     const input = document.createElement("input");
