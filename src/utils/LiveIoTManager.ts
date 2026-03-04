@@ -22,7 +22,6 @@ export interface LiveFlowMeter {
 }
 
 export interface FlowMeterMarkerData {
-  markerId: string;
   element: HTMLElement;
   position: THREE.Vector3;
   line?: THREE.Line;
@@ -49,16 +48,6 @@ class SimpleEventEmitter {
     if (callbacks) {
       for (const callback of callbacks) {
         callback(args);
-      }
-    }
-  }
-
-  removeListener(event: string, callback: FlowMeterUpdateCallback): void {
-    const callbacks = this.events.get(event);
-    if (callbacks) {
-      const index = callbacks.indexOf(callback);
-      if (index > -1) {
-        callbacks.splice(index, 1);
       }
     }
   }
@@ -246,7 +235,6 @@ export class LiveIoTManager extends SimpleEventEmitter {
     this.world.scene.three.add(line);
 
     this.markerData.set(id, {
-      markerId: id,
       element,
       position: markerPosition.clone(),
       line,

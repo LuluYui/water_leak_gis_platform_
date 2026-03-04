@@ -92,7 +92,3 @@ export const PATTERN_NAMES: Record<FlowPattern, string> = {
   commercial: "Commercial Building",
   industrial: "Industrial Facility",
 };
-
-export function getPatternForHour(pattern: FlowPattern, hour: number): number {
-  return FLOW_PATTERNS[pattern][hour] || 1.0;
-}

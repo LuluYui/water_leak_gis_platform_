@@ -13,6 +13,11 @@ export const gridSidebarTemplate: BUI.StatefullComponent<GridSidebarState> = (
 ) => {
   const { grid, compact, layoutIcons } = state;
 
+  if (!(grid as any)._sidebarListenerAdded) {
+    grid.addEventListener("layoutchange", () => update());
+    (grid as any)._sidebarListenerAdded = true;
+  }
+
   const onToggleCompact = () => {
     update({ compact: !state.compact });
   };

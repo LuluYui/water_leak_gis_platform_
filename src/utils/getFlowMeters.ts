@@ -1,6 +1,4 @@
 import * as OBC from "@thatopen/components";
-import * as OBF from "@thatopen/components-front";
-import * as BUI from "@thatopen/ui";
 import * as THREE from "three";
 
 export interface FlowMeterData {
@@ -11,9 +9,6 @@ export interface FlowMeterData {
   flowRate?: number;
   flowPressure?: number;
 }
-
-const FLOW_MARKER_COLOR = "#4a90d9";
-const FLOW_LINE_COLOR = "#4a90d9";
 
 export const getFlowMetersCoordinates = async (
   components: OBC.Components,
@@ -78,70 +73,4 @@ export const getFlowMetersCoordinates = async (
   console.log("Flow meters with coordinates:", flowMeters);
 
   return flowMeters;
-};
-
-export const createFlowMeterMarkers = async (
-  components: OBC.Components,
-  world: OBC.SimpleWorld<
-    OBC.SimpleScene,
-    OBC.OrthoPerspectiveCamera,
-    OBF.PostproductionRenderer
-  >,
-): Promise<void> => {
-  const marker = components.get(OBF.Marker);
-  marker.threshold = 10;
-
-  const flowMeters = await getFlowMetersCoordinates(components);
-
-  for (const flowMeter of flowMeters) {
-    const element = BUI.Component.create(() => {
-      return BUI.html`
-        <div style="
-          background: rgba(0, 0, 0, 0.85);
-          color: white;
-          padding: 8px 12px;
-          border-radius: 6px;
-          font-family: sans-serif;
-          font-size: 12px;
-          min-width: 120px;
-          border: 1px solid ${FLOW_MARKER_COLOR};
-          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        ">
-          <div style="font-weight: bold; margin-bottom: 4px; color: ${FLOW_MARKER_COLOR};">
-            ${flowMeter.name}
-          </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
-            <span>Flow Rate:</span>
-            <span style="color: #4ade80; font-weight: bold;">
-              ${flowMeter.flowRate?.toFixed(1)} L/min
-            </span>
-          </div>
-          <div style="display: flex; justify-content: space-between;">
-            <span>Pressure:</span>
-            <span style="color: #f87171; font-weight: bold;">
-              ${flowMeter.flowPressure?.toFixed(2)} bar
-            </span>
-          </div>
-        </div>
-      `;
-    });
-
-    const offset = new THREE.Vector3(0, 0, 0);
-    const markerPosition = flowMeter.position.clone().add(offset);
-
-    marker.create(world, element, markerPosition);
-
-    const lineGeometry = new THREE.BufferGeometry().setFromPoints([
-      flowMeter.position,
-      markerPosition,
-    ]);
-    const lineMaterial = new THREE.LineBasicMaterial({
-      color: FLOW_LINE_COLOR,
-      linewidth: 2,
-    });
-    const line = new THREE.Line(lineGeometry, lineMaterial);
-    world.scene.three.add(line);
-  }
-
-  console.log(`Created ${flowMeters.length} flow meter markers`);
 };

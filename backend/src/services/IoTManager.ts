@@ -44,8 +44,6 @@ import { DataSimulator } from "./DataSimulator";
 import { HistoricalStore } from "./HistoricalStore";
 import { AnalyticsEngine } from "./AnalyticsEngine";
 
-export type IoTUpdateCallback = (meter: FlowMeterData) => void;
-
 export class IoTManager extends SimpleEventEmitter {
   private simulator: DataSimulator;
   private historicalStore: HistoricalStore;

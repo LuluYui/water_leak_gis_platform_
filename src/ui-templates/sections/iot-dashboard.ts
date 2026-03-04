@@ -10,7 +10,6 @@ interface IoTManagerState {
 
 let _iotManager: LiveIoTManager;
 let _selectedMeterId: string | null = null;
-let _refreshKey = 0;
 
 function createChart(
   history: HistoricalDataPoint[],
@@ -185,7 +184,6 @@ export const iotDashboardTemplate: BUI.StatefullComponent<IoTManagerState> = (
             } else {
               _iotManager.startSimulation();
             }
-            _refreshKey++;
           }}
         ></bim-button>
       </div>
@@ -262,7 +260,6 @@ export const iotDashboardTemplate: BUI.StatefullComponent<IoTManagerState> = (
                    border-radius: 4px; cursor: pointer; border: 1px solid ${_selectedMeterId === meter.id ? "#4a90d9" : "transparent"};"
             @click=${() => {
               _selectedMeterId = meter.id;
-              _refreshKey++;
             }}
           >
             <span style="font-size: 10px; color: #d1d5db;">${meter.id}</span>

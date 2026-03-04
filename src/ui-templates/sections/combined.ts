@@ -19,7 +19,8 @@ export const combinedPanelTemplate: BUI.StatefullComponent<
   const highlighter = components.get(OBF.Highlighter);
   const viewpointsManager = components.get(OBC.Viewpoints);
 
-  // Load preset fragments
+  // Load preset fragments (Disabled - handled in main.ts)
+  /*
   const loadPresetFragments = async () => {
     const fragPaths = ["/water_mains.frag"];
     try {
@@ -37,6 +38,7 @@ export const combinedPanelTemplate: BUI.StatefullComponent<
     }
   };
   loadPresetFragments();
+  */
 
   const [modelsList] = CUI.tables.modelsList({
     components,

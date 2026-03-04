@@ -84,6 +84,11 @@ div {
 
 bim-grid[floating] {
   z-index: 100;
+  pointer-events: none;
+}
+
+bim-grid[floating] > * {
+  pointer-events: auto;
 }
 
 bim-grid:not([floating]) {

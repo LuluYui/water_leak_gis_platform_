@@ -28,12 +28,6 @@ export class HistoricalStore {
     }
   }
 
-  addBatch(meterId: string, readings: FlowMeterReading[]): void {
-    for (const reading of readings) {
-      this.add(meterId, reading);
-    }
-  }
-
   getRange(meterId: string, timeRangeMs: number): HistoricalDataPoint[] {
     const meterData = this.data.get(meterId) || [];
     const cutoff = Date.now() - timeRangeMs;
@@ -44,16 +38,8 @@ export class HistoricalStore {
     return this.data.get(meterId) || [];
   }
 
-  getAllMeters(): string[] {
-    return Array.from(this.data.keys());
-  }
-
   clear(): void {
     this.data.clear();
-  }
-
-  clearMeter(meterId: string): void {
-    this.data.delete(meterId);
   }
 
   exportCSV(meterId: string): string {
@@ -65,18 +51,5 @@ export class HistoricalStore {
     }
 
     return csv;
-  }
-
-  getStats(
-    meterId: string,
-  ): { count: number; startTime: number; endTime: number } | null {
-    const meterData = this.data.get(meterId);
-    if (!meterData || meterData.length === 0) return null;
-
-    return {
-      count: meterData.length,
-      startTime: meterData[0].timestamp,
-      endTime: meterData[meterData.length - 1].timestamp,
-    };
   }
 }

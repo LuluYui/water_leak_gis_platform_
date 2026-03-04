@@ -20,11 +20,7 @@ export interface FlowMeterReading {
 
 export interface FlowMeterData {
   id: string;
-  localId?: number;
-  modelId?: string;
-  position?: { x: number; y: number; z: number };
   name: string;
-  pipeSpec?: string;
   flowRate: number;
   flowPressure: number;
   temperature?: number;

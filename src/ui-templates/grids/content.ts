@@ -2,6 +2,7 @@ import * as OBC from "@thatopen/components";
 import * as BUI from "@thatopen/ui";
 import * as TEMPLATES from "..";
 import { CONTENT_GRID_GAP, CONTENT_GRID_ID } from "../../globals";
+import { liveIoTManager } from "../../utils/LiveIoTManager";
 
 type Viewer = "viewer";
 
@@ -10,9 +11,19 @@ type Combined = {
   state: TEMPLATES.CombinedPanelState;
 };
 
-export type ContentGridElements = [Viewer, Combined];
+type Analytics = {
+  name: "analytics";
+  state: TEMPLATES.AnalyticsManagerState;
+};
 
-export type ContentGridLayouts = ["Viewer"];
+type BimAnalytics = {
+  name: "bimAnalytics";
+  state: TEMPLATES.BimAnalyticsManagerState;
+};
+
+export type ContentGridElements = [Viewer, Combined, Analytics, BimAnalytics];
+
+export type ContentGridLayouts = ["Viewer", "Analytics", "BimAnalytics"];
 
 export interface ContentGridState {
   components: OBC.Components;
@@ -37,6 +48,14 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
         template: TEMPLATES.combinedPanelTemplate,
         initialState: { components, world },
       },
+      analytics: {
+        template: TEMPLATES.analyticsDashboardTemplate,
+        initialState: { iotManager: liveIoTManager },
+      },
+      bimAnalytics: {
+        template: TEMPLATES.bimAnalyticsDashboardTemplate,
+        initialState: { iotManager: liveIoTManager },
+      },
       viewer: state.viewportTemplate,
     };
 
@@ -44,7 +63,19 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
       Viewer: {
         template: `
                     "viewer combined" 1fr
-                    /1fr 30rem
+                    /1fr 25rem
+                `,
+      },
+      Analytics: {
+        template: `
+                    "viewer analytics" 1fr
+                    /1fr 15rem
+                `,
+      },
+      BimAnalytics: {
+        template: `
+                    "viewer bimAnalytics" 1fr
+                    /1fr 15rem
                 `,
       },
     };

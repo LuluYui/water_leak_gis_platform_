@@ -8,7 +8,6 @@ import { viewportSettingsTemplate } from "./ui-templates/buttons/viewport-settin
 import { iotDashboardTemplate } from "./ui-templates/sections/iot-dashboard";
 import { getFlowMetersCoordinates } from "./utils/getFlowMeters";
 import { liveIoTManager } from "./utils/LiveIoTManager";
-// import { viewerToolbarTemplate } from "./ui-templates/toolbars/viewer-toolbar";
 
 BUI.Manager.init();
 
@@ -18,32 +17,30 @@ interface HK80Offset {
   elevation: number;
 }
 
-let hk80Offset: HK80Offset | null = null;
+let hk80Offset: HK80Offset | null = {
+  easting: 827961.539,
+  northing: 824013.889,
+  elevation: 0,
+};
 
-function parseHK80OffsetFromIFC(ifcContent: string): HK80Offset | null {
-  const matches = ifcContent.matchAll(
-    /IFCCARTESIANPOINT\(\((\d+\.?\d*),\s*(\d+\.?\d*),\s*(\d+\.?\d*)\)\)/g,
-  );
-
-  for (const match of matches) {
-    const x = parseFloat(match[1]);
-    const y = parseFloat(match[2]);
-    const z = parseFloat(match[3]);
-
-    if (x > 100000 && y > 100000) {
-      console.log("Parsed HK80 offset from IFC:", { easting: x, northing: y, elevation: z });
-      return { easting: x, northing: y, elevation: z };
-    }
-  }
-  return null;
-}
-
-function toHK80(x: number, y: number, z: number): { easting: number; northing: number; elevation: number } | null {
+function toHK80(
+  x: number,
+  y: number,
+  z: number,
+): { easting: number; northing: number; elevation: number } | null {
   if (!hk80Offset) return null;
-  return { easting: x + hk80Offset.easting / 1000, northing: y + hk80Offset.northing / 1000, elevation: z };
+  return {
+    easting: x + hk80Offset.easting,
+    northing: z + hk80Offset.northing,
+    elevation: y + hk80Offset.elevation,
+  };
 }
 
-function formatHK80Coord(hk80: { easting: number; northing: number; elevation: number }): string {
+function formatHK80Coord(hk80: {
+  easting: number;
+  northing: number;
+  elevation: number;
+}): string {
   return `E: ${hk80.easting.toFixed(3)}  N: ${hk80.northing.toFixed(3)}  El: ${hk80.elevation.toFixed(3)} m`;
 }
 
@@ -52,7 +49,11 @@ function formatHK80Coord(hk80: { easting: number; northing: number; elevation: n
 const components = new OBC.Components();
 const worlds = components.get(OBC.Worlds);
 
-const world = worlds.create<OBC.SimpleScene, OBC.OrthoPerspectiveCamera, OBF.PostproductionRenderer>();
+const world = worlds.create<
+  OBC.SimpleScene,
+  OBC.OrthoPerspectiveCamera,
+  OBF.PostproductionRenderer
+>();
 world.name = "Main";
 world.scene = new OBC.SimpleScene(components);
 world.scene.setup();
@@ -80,6 +81,10 @@ const resizeWorld = () => {
 viewport.addEventListener("resize", resizeWorld);
 world.dynamicAnchor = false;
 components.init();
+
+const highlighter = components.get(OBF.Highlighter);
+highlighter.setup({ world });
+highlighter.enabled = true;
 
 const raycaster = components.get(OBC.Raycasters).get(world);
 const fragments = components.get(OBC.FragmentsManager);
@@ -124,7 +129,7 @@ viewport.addEventListener("mousemove", async (_event) => {
         }
       }
     }
-  } catch (e) {}
+  } catch {}
 });
 
 viewport.addEventListener("mouseleave", () => {
@@ -135,17 +140,6 @@ fragments.list.onItemSet.add(async ({ value: model }) => {
   model.useCamera(world.camera.three);
   world.scene.three.add(model.object);
   await fragments.core.update(true);
-
-  if (!hk80Offset) {
-    try {
-      const ifcResponse = await fetch("/water_mains.ifc");
-      if (ifcResponse.ok) {
-        const ifcContent = await ifcResponse.text();
-        const parsed = parseHK80OffsetFromIFC(ifcContent);
-        if (parsed) hk80Offset = parsed;
-      }
-    } catch (e) {}
-  }
 
   const ifcFlowMeters = await getFlowMetersCoordinates(components);
   liveIoTManager.initialize(components, world);
@@ -164,21 +158,31 @@ fragments.list.onItemSet.add(async ({ value: model }) => {
   }
 
   const controls = world.camera.controls;
+  // Use the original hardcoded camera position for the best viewing angle
   controls.setLookAt(-50, 70, 70, -116, 0, 30, true);
 });
 
 // Layout / UI Integration
 
-const [viewportSettings] = BUI.Component.create(viewportSettingsTemplate, { components, world });
+const [viewportSettings] = BUI.Component.create(viewportSettingsTemplate, {
+  components,
+  world,
+});
 viewport.append(viewportSettings);
 
-const [iotPanel] = BUI.Component.create(iotDashboardTemplate, { iotManager: liveIoTManager });
+const [iotPanel] = BUI.Component.create(iotDashboardTemplate, {
+  iotManager: liveIoTManager,
+});
 viewport.append(iotPanel);
 
-const [viewportGrid] = BUI.Component.create(TEMPLATES.viewportGridTemplate, { components, world });
+const [viewportGrid] = BUI.Component.create(TEMPLATES.viewportGridTemplate, {
+  components,
+  world,
+});
 viewport.append(viewportGrid);
 
-const viewportCardTemplate = () => BUI.html`<div class="dashboard-card" style="padding: 0px;">${viewport}</div>`;
+const viewportCardTemplate = () =>
+  BUI.html`<div class="dashboard-card" style="padding: 0px;">${viewport}</div>`;
 
 const [contentGrid] = BUI.Component.create<
   BUI.Grid<TEMPLATES.ContentGridLayouts, TEMPLATES.ContentGridElements>,
@@ -192,8 +196,12 @@ const [contentGrid] = BUI.Component.create<
 
 const setInitialLayout = () => {
   if (window.location.hash) {
-    const hash = window.location.hash.slice(1) as TEMPLATES.ContentGridLayouts[number];
-    contentGrid.layout = Object.keys(contentGrid.layouts).includes(hash) ? hash : "Viewer";
+    const hash = window.location.hash.slice(
+      1,
+    ) as TEMPLATES.ContentGridLayouts[number];
+    contentGrid.layout = Object.keys(contentGrid.layouts).includes(hash)
+      ? hash
+      : "Viewer";
   } else {
     window.location.hash = "Viewer";
     contentGrid.layout = "Viewer";
@@ -201,7 +209,9 @@ const setInitialLayout = () => {
 };
 
 setInitialLayout();
-contentGrid.addEventListener("layoutchange", () => { window.location.hash = contentGrid.layout as string; });
+contentGrid.addEventListener("layoutchange", () => {
+  window.location.hash = contentGrid.layout as string;
+});
 
 type AppLayouts = ["App"];
 type Sidebar = {
@@ -211,14 +221,48 @@ type Sidebar = {
 type ContentGrid = { name: "contentGrid"; state: TEMPLATES.ContentGridState };
 type AppGridElements = [Sidebar, ContentGrid];
 
-const app = document.getElementById("app") as BUI.Grid<AppLayouts, AppGridElements>;
+const app = document.getElementById("app") as BUI.Grid<
+  AppLayouts,
+  AppGridElements
+>;
 app.elements = {
   sidebar: {
     template: TEMPLATES.gridSidebarTemplate,
-    initialState: { grid: contentGrid, compact: true, layoutIcons: { Viewer: appIcons.MODEL } },
+    initialState: {
+      grid: contentGrid,
+      compact: true,
+      layoutIcons: {
+        Viewer: appIcons.MODEL,
+        Analytics: appIcons.CHART,
+        BimAnalytics: appIcons.TASK,
+      },
+    },
   },
   contentGrid,
 };
 
 app.layouts = { App: { template: `"sidebar contentGrid" 1fr /auto 1fr` } };
 app.layout = "App";
+
+(window as any).components = components;
+(window as any).world = world;
+(window as any).fragments = fragments;
+(window as any).THREE = THREE;
+
+const loadInitialFragment = async () => {
+  try {
+    const file = await fetch("/water_mains.frag");
+    if (file.ok) {
+      const data = await file.arrayBuffer();
+      const buffer = new Uint8Array(data);
+      await fragments.core.load(buffer, { modelId: "water_mains" });
+      console.log("Loaded water_mains.frag");
+    }
+  } catch (error) {
+    console.error("Error loading water_mains.frag:", error);
+  }
+};
+// wait a bit for viewport initialization before loading model
+setTimeout(() => {
+  loadInitialFragment();
+}, 500);

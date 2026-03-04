@@ -21,7 +21,6 @@ export class AnalyticsEngine {
     }
 
     const flowRates = history.map((h) => h.flowRate);
-    const pressures = history.map((h) => h.flowPressure);
 
     const movingAvg = this.movingAverage(flowRates, 10);
     const ema = this.exponentialMovingAverage(flowRates, 0.3);

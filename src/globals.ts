@@ -1,7 +1,5 @@
 export const CONTENT_GRID_ID = "app-content";
 export const CONTENT_GRID_GAP = "1rem";
-export const SMALL_COLUMN_WIDTH = "22rem";
-export const MEDIUM_COLUMN_WIDTH = "25rem";
 
 export const appIcons = {
   ADD: "mdi:plus",
@@ -27,6 +25,7 @@ export const appIcons = {
   DARK: "tabler:moon-filled",
   LIGHT: "tabler:sun-filled",
   SEARCH: "tabler:search",
+  CHART: "solar:chart-bold",
 };
 
 export const tooltips = {
@@ -50,9 +49,4 @@ export const tooltips = {
     TITLE: "Show All Items",
     TEXT: "Reset the visibility of all hidden items, so they become visible again.",
   },
-};
-
-export const flowMeter = {
-  id: [7251456, 7400860, 7729648, 7739800, 7728102, 7048120],
-  local_id: [184746, 218357, 428684, 457577, 426295, 109657],
 };
