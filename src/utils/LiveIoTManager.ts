@@ -73,6 +73,10 @@ export class LiveIoTManager extends SimpleEventEmitter {
   public markersVisible: boolean = true;
   private markerOffset: THREE.Vector3 = new THREE.Vector3(0, 5, 0);
 
+  private allMarkerElements: HTMLElement[] = [];
+  private allClusterElements: HTMLElement[] = [];
+  private autoClusterOriginallyEnabled: boolean = true;
+
   initialize(
     components: OBC.Components,
     world: OBC.SimpleWorld<
@@ -84,6 +88,8 @@ export class LiveIoTManager extends SimpleEventEmitter {
     this.world = world;
     this.markerComponent = components.get(OBF.Marker);
     this.markerComponent.threshold = 10;
+    this.autoClusterOriginallyEnabled =
+      (this.markerComponent as any).autoCluster !== false;
   }
 
   initializeFromIFCMeters(
@@ -139,7 +145,25 @@ export class LiveIoTManager extends SimpleEventEmitter {
 
   toggleMarkersVisibility(): void {
     this.markersVisible = !this.markersVisible;
+    this.applyVisibilityToAll();
+    this.emit("visibilityChanged", this.markersVisible);
+  }
+
+  private applyVisibilityToAll(): void {
     if (!this.world || !this.markerComponent) return;
+
+    this.markerComponent.enabled = this.markersVisible;
+
+    const markerAny = this.markerComponent as any;
+
+    if (!this.markersVisible) {
+      markerAny.autoCluster = false;
+      this.hideAllClusterElements();
+    } else {
+      markerAny.autoCluster = this.autoClusterOriginallyEnabled;
+      this.showAllClusterElements();
+      this.triggerClustering();
+    }
 
     for (const [, data] of this.markerData) {
       if (data.element) {
@@ -149,7 +173,159 @@ export class LiveIoTManager extends SimpleEventEmitter {
         data.line.visible = this.markersVisible;
       }
     }
-    this.emit("visibilityChanged", this.markersVisible);
+  }
+
+  private hideAllClusterElements(): void {
+    const viewport = document.querySelector("bim-viewport");
+    if (!viewport) return;
+
+    this.allClusterElements = [];
+
+    const selectors = [
+      ".bim-label",
+      "[class*='cluster']",
+      "span[class*='bim-label']",
+    ];
+
+    for (const selector of selectors) {
+      const elements = viewport.querySelectorAll(selector);
+      elements.forEach((el) => {
+        const htmlEl = el as HTMLElement;
+        htmlEl.style.setProperty("display", "none", "important");
+        this.allClusterElements.push(htmlEl);
+      });
+    }
+
+    const allSpans = viewport.querySelectorAll("span");
+    for (const span of allSpans) {
+      const htmlSpan = span as HTMLElement;
+      const style = htmlSpan.style;
+
+      const isClusterSpan =
+        style.position === "absolute" &&
+        style.pointerEvents === "auto" &&
+        style.zIndex &&
+        parseInt(style.zIndex) > 0 &&
+        style.transform &&
+        style.transform.includes("translate");
+
+      if (isClusterSpan) {
+        const childDiv = htmlSpan.querySelector("div");
+        const isClusterBubble =
+          childDiv &&
+          (childDiv.style.borderRadius === "50%" ||
+            childDiv.style.borderRadius === "") &&
+          childDiv.style.fontSize === "1.2rem" &&
+          childDiv.style.textAlign === "center";
+
+        if (isClusterBubble) {
+          if (!this.allClusterElements.includes(htmlSpan)) {
+            this.allClusterElements.push(htmlSpan);
+            htmlSpan.style.setProperty("display", "none", "important");
+          }
+        }
+      }
+    }
+
+    const allDivs = viewport.querySelectorAll("div");
+    for (const div of allDivs) {
+      const htmlDiv = div as HTMLElement;
+      const style = htmlDiv.style;
+
+      const isClusterBubble =
+        style.borderRadius === "100%" &&
+        (style.fontSize === "3.2rem" || style.fontSize === "1.2rem") &&
+        style.textAlign === "center";
+
+      if (isClusterBubble) {
+        const parent = htmlDiv.parentElement;
+        if (parent) {
+          const parentHtml = parent as HTMLElement;
+          if (parentHtml.tagName === "SPAN") {
+            parentHtml.style.setProperty("display", "none", "important");
+            if (!this.allClusterElements.includes(parentHtml)) {
+              this.allClusterElements.push(parentHtml);
+            }
+          } else {
+            htmlDiv.style.setProperty("display", "none", "important");
+            if (!this.allClusterElements.includes(htmlDiv)) {
+              this.allClusterElements.push(htmlDiv);
+            }
+          }
+        }
+      }
+    }
+
+    try {
+      const markerAny = this.markerComponent as any;
+      if (markerAny._clusters) {
+        markerAny._clusters.forEach((cluster: any) => {
+          if (
+            cluster.label &&
+            cluster.label.three &&
+            cluster.label.three.element
+          ) {
+            const el = cluster.label.three.element;
+            el.style.setProperty("display", "none", "important");
+            if (el.parentElement) {
+              el.parentElement.style.setProperty(
+                "display",
+                "none",
+                "important",
+              );
+              if (!this.allClusterElements.includes(el.parentElement)) {
+                this.allClusterElements.push(el.parentElement);
+              }
+            }
+          }
+        });
+      }
+      if (markerAny.clusterLabels) {
+        markerAny.clusterLabels.forEach((cluster: any) => {
+          if (
+            cluster &&
+            cluster.label &&
+            cluster.label.three &&
+            cluster.label.three.element
+          ) {
+            const el = cluster.label.three.element;
+            el.style.setProperty("display", "none", "important");
+            if (el.parentElement) {
+              el.parentElement.style.setProperty(
+                "display",
+                "none",
+                "important",
+              );
+              if (!this.allClusterElements.includes(el.parentElement)) {
+                this.allClusterElements.push(el.parentElement);
+              }
+            }
+          }
+        });
+      }
+    } catch (e) {
+      // Ignore errors accessing internal marker properties
+    }
+  }
+
+  private showAllClusterElements(): void {
+    for (const el of this.allClusterElements) {
+      el.style.removeProperty("display");
+    }
+  }
+
+  private triggerClustering(): void {
+    if (!this.markersVisible || !this.world || !this.markerComponent) return;
+
+    try {
+      (this.markerComponent as any).cluster(this.world);
+    } catch (e) {
+      // Clustering may fail if no markers exist yet
+    }
+  }
+
+  clearAllClusterElements(): void {
+    this.allClusterElements = [];
   }
 
   private updateSimulationData(): void {
@@ -184,8 +360,13 @@ export class LiveIoTManager extends SimpleEventEmitter {
 
   createMarkers(): void {
     if (!this.world || !this.markerComponent) return;
+    this.clearAllClusterElements();
+    this.allMarkerElements = [];
     for (const [id, meter] of this.flowMeters) {
       this.createMarker(id, meter);
+    }
+    if (this.markersVisible) {
+      this.triggerClustering();
     }
   }
 
@@ -209,6 +390,7 @@ export class LiveIoTManager extends SimpleEventEmitter {
       display: ${this.markersVisible ? "block" : "none"};
     `;
     this.updateMarkerContent(element, meter);
+    this.allMarkerElements.push(element);
 
     const markerPosition = meter.position.clone().add(this.markerOffset);
 
