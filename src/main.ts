@@ -105,8 +105,8 @@ const coordDisplay = document.createElement("div");
 coordDisplay.id = "coord-display";
 coordDisplay.style.cssText = `
   position: fixed;
-  bottom: 20px;
-  left: 20px;
+  bottom: 30px;
+  left: 100px;
   background: rgba(0, 0, 0, 0.8);
   color: white;
   padding: 8px 12px;
