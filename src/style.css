@@ -30,6 +30,7 @@
     --bim-ui_bg-contrast-100: var(--bim-ui_gray-10);
     --bim-ui_text-normal: var(--bim-ui_gray-10);
     --bim-ui_text-dim: var(--bim-ui_gray-8);
+    --bim-ui_bg-card: var(--bim-ui_gray-2);
   }
 }
 
@@ -45,6 +46,7 @@
     --bim-ui_text-normal: var(--bim-ui_gray-0);
     --bim-ui_text-dim: var(--bim-ui_gray-2);
     --bim-ui_accent-base: #6528d7;
+    --bim-ui_bg-card: hsl(265, 30%, 96%);
   }
 }
 
@@ -58,6 +60,7 @@ html.bim-ui-dark {
   --bim-ui_bg-contrast-100: var(--bim-ui_gray-10);
   --bim-ui_text-normal: var(--bim-ui_gray-10);
   --bim-ui_text-dim: var(--bim-ui_gray-8);
+  --bim-ui_bg-card: var(--bim-ui_gray-2);
 }
 
 html.bim-ui-light {
@@ -71,6 +74,7 @@ html.bim-ui-light {
   --bim-ui_text-normal: var(--bim-ui_gray-0);
   --bim-ui_text-dim: var(--bim-ui_gray-2);
   --bim-ui_accent-base: var(--bim-ui_main-base);
+  --bim-ui_bg-card: hsl(265, 30%, 96%);
 }
 
 * {
@@ -151,9 +155,9 @@ bim-table bim-cell-content {
 bim-grid[floating] > bim-toolbar {
   border: none;
   outline: 1px solid var(--bim-ui_bg-contrast-40);
-  background-color: var(--bim-ui_bg-contrast-20);
+  background-color: var(--bim-ui_bg-card);
   border-radius: 0.5rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 bim-grid[floating] > bim-toolbar:not([vertical]) {
@@ -162,10 +166,10 @@ bim-grid[floating] > bim-toolbar:not([vertical]) {
 
 bim-grid[floating] > bim-panel-section {
   --bim-panel-section_hc: var(--bim-ui_accent-base);
-  background-color: var(--bim-ui_bg-contrast-20);
+  background-color: var(--bim-ui_bg-card);
   outline: 1px solid var(--bim-ui_bg-contrast-40);
   border-radius: 0.5rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   overflow: hidden;
   padding: 0.5rem;
   display: flex;
@@ -174,7 +178,7 @@ bim-grid[floating] > bim-panel-section {
 }
 
 bim-context-menu {
-  background-color: var(--bim-ui_bg-contrast-20);
+  background-color: var(--bim-ui_bg-card);
   outline: 1px solid var(--bim-ui_bg-contrast-40);
 }
 

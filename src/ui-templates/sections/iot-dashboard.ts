@@ -20,8 +20,13 @@ function createChart(
   canvas.height = 100;
   const ctx = canvas.getContext("2d")!;
 
+  const isDark = document.documentElement.classList.contains("bim-ui-dark");
+  const bgColor = isDark ? "rgba(0, 0, 0, 0.3)" : "rgba(0, 0, 0, 0.05)";
+  const gridColor = isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.08)";
+  const textColor = isDark ? "#9ca3af" : "#6b7280";
+
   if (history.length < 2) {
-    ctx.fillStyle = "#6b7280";
+    ctx.fillStyle = textColor;
     ctx.font = "10px sans-serif";
     ctx.textAlign = "center";
     ctx.fillText("No data yet", canvas.width / 2, canvas.height / 2);
@@ -38,11 +43,11 @@ function createChart(
   const chartHeight = canvas.height - padding * 2;
 
   // Background
-  ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+  ctx.fillStyle = bgColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // Grid lines
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+  ctx.strokeStyle = gridColor;
   ctx.lineWidth = 1;
   for (let i = 0; i <= 4; i++) {
     const y = padding + (chartHeight / 4) * i;
@@ -80,7 +85,7 @@ function createChart(
   ctx.globalAlpha = 1;
 
   // Labels
-  ctx.fillStyle = "#9ca3af";
+  ctx.fillStyle = textColor;
   ctx.font = "9px sans-serif";
   ctx.textAlign = "left";
   ctx.fillText(max.toFixed(0), 2, padding + 8);
@@ -129,6 +134,9 @@ export const iotDashboardTemplate: BUI.StatefullComponent<IoTManagerState> = (
   const meters = _iotManager.getAllFlowMeters();
   const running = _iotManager.isRunning();
 
+  const isDark = document.documentElement.classList.contains("bim-ui-dark");
+  const titleColor = isDark ? "#4ade80" : "#6528d7";
+
   // Default to first meter if none selected
   if (!_selectedMeterId && meters.length > 0) {
     _selectedMeterId = meters[0].id;
@@ -155,29 +163,29 @@ export const iotDashboardTemplate: BUI.StatefullComponent<IoTManagerState> = (
   const onlineCount = meters.filter((m: any) => m.isOnline).length;
 
   return BUI.html`
-    <div style="display: flex; flex-direction: column; gap: 8px; padding: 8px; height: 100%; overflow-y: auto;">
+    <div style="display: flex; flex-direction: column; gap: 16px; padding: 16px; height: 100%; overflow-y: auto; background: var(--bim-ui_bg-base);">
       
       <!-- Header Stats -->
-      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
-        <div style="background: rgba(74, 222, 128, 0.1); border: 1px solid rgba(74, 222, 128, 0.3); border-radius: 6px; padding: 8px; text-align: center;">
-          <div style="font-size: 16px; font-weight: bold; color: #4ade80;">${onlineCount}</div>
-          <div style="font-size: 8px; color: #9ca3af;">Online</div>
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+        <div style="background: linear-gradient(135deg, #059669 0%, #10b981 100%); border-radius: 12px; padding: 16px; text-align: center; color: white; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
+          <div style="font-size: 28px; font-weight: 700;">${onlineCount}</div>
+          <div style="font-size: 10px; opacity: 0.85; text-transform: uppercase; letter-spacing: 1px;">Online</div>
         </div>
-        <div style="background: rgba(96, 165, 250, 0.1); border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 6px; padding: 8px; text-align: center;">
-          <div style="font-size: 16px; font-weight: bold; color: #60a5fa;">${avgFlowRate.toFixed(0)}</div>
-          <div style="font-size: 8px; color: #9ca3af;">Avg L/min</div>
+        <div style="background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%); border-radius: 12px; padding: 16px; text-align: center; color: white; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">
+          <div style="font-size: 28px; font-weight: 700;">${avgFlowRate.toFixed(0)}</div>
+          <div style="font-size: 10px; opacity: 0.85; text-transform: uppercase; letter-spacing: 1px;">Avg L/min</div>
         </div>
-        <div style="background: rgba(248, 113, 113, 0.1); border: 1px solid rgba(248, 113, 113, 0.3); border-radius: 6px; padding: 8px; text-align: center;">
-          <div style="font-size: 16px; font-weight: bold; color: #f87171;">${avgPressure.toFixed(1)}</div>
-          <div style="font-size: 8px; color: #9ca3af;">bar</div>
+        <div style="background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); border-radius: 12px; padding: 16px; text-align: center; color: white; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);">
+          <div style="font-size: 28px; font-weight: 700;">${avgPressure.toFixed(1)}</div>
+          <div style="font-size: 10px; opacity: 0.85; text-transform: uppercase; letter-spacing: 1px;">bar</div>
         </div>
       </div>
 
       <!-- Controls -->
-      <div style="display: flex; gap: 6px;">
+      <div style="display: flex; gap: 8px;">
         <bim-button 
-          style="flex: 1; font-size: 11px;"
-          label="${running ? "⏹ Stop" : "▶ Start"}"
+          style="flex: 1;"
+          label="${running ? "⏹ Stop Simulation" : "▶ Start Simulation"}"
           @click=${() => {
             if (running) {
               _iotManager.stopSimulation();
@@ -192,54 +200,54 @@ export const iotDashboardTemplate: BUI.StatefullComponent<IoTManagerState> = (
       ${
         selectedMeter
           ? BUI.html`
-        <div style="background: rgba(0,0,0,0.4); border-radius: 6px; padding: 8px;">
-          <div style="font-size: 11px; font-weight: bold; color: #4a90d9; margin-bottom: 6px;">
+        <div style="background: var(--bim-ui_bg-card); border: 1px solid var(--bim-ui_bg-contrast-40); border-radius: 12px; padding: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.1);">
+          <div style="font-size: 13px; font-weight: 600; color: ${titleColor}; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px;">
             ${selectedMeter.name}
           </div>
           
           <!-- Live Values -->
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px;">
-            <div style="background: rgba(0,0,0,0.5); padding: 6px; border-radius: 4px; text-align: center;">
-              <div style="font-size: 14px; font-weight: bold; color: #4ade80;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+            <div style="background: var(--bim-ui_bg-contrast-10); padding: 12px; border-radius: 8px; text-align: center; border: 1px solid var(--bim-ui_bg-contrast-30);">
+              <div style="font-size: 22px; font-weight: 700; color: #4ade80;">
                 ${selectedMeter.flowRate.toFixed(1)}
               </div>
-              <div style="font-size: 7px; color: #9ca3af;">L/min</div>
+              <div style="font-size: 10px; color: var(--bim-ui_text-dim); text-transform: uppercase;">L/min</div>
             </div>
-            <div style="background: rgba(0,0,0,0.5); padding: 6px; border-radius: 4px; text-align: center;">
-              <div style="font-size: 14px; font-weight: bold; color: #f87171;">
+            <div style="background: var(--bim-ui_bg-contrast-10); padding: 12px; border-radius: 8px; text-align: center; border: 1px solid var(--bim-ui_bg-contrast-30);">
+              <div style="font-size: 22px; font-weight: 700; color: #f87171;">
                 ${selectedMeter.flowPressure.toFixed(2)}
               </div>
-              <div style="font-size: 7px; color: #9ca3af;">bar</div>
+              <div style="font-size: 10px; color: var(--bim-ui_text-dim); text-transform: uppercase;">bar</div>
             </div>
           </div>
           
           <!-- Analytics Indicators -->
-          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; margin-bottom: 8px; font-size: 9px;">
-            <div style="display: flex; justify-content: space-between; color: #9ca3af;">
-              <span>MA:</span>
-              <span style="color: #60a5fa;">${analytics.ma.toFixed(1)}</span>
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; font-size: 11px;">
+            <div style="display: flex; justify-content: space-between; padding: 8px; background: var(--bim-ui_bg-contrast-10); border-radius: 6px;">
+              <span style="color: var(--bim-ui_text-dim);">MA:</span>
+              <span style="color: #60a5fa; font-weight: 600;">${analytics.ma.toFixed(1)}</span>
             </div>
-            <div style="display: flex; justify-content: space-between; color: #9ca3af;">
-              <span>EMA:</span>
-              <span style="color: #a78bfa;">${analytics.ema.toFixed(1)}</span>
+            <div style="display: flex; justify-content: space-between; padding: 8px; background: var(--bim-ui_bg-contrast-10); border-radius: 6px;">
+              <span style="color: var(--bim-ui_text-dim);">EMA:</span>
+              <span style="color: #a78bfa; font-weight: 600;">${analytics.ema.toFixed(1)}</span>
             </div>
-            <div style="display: flex; justify-content: space-between; color: #9ca3af;">
-              <span>Min:</span>
-              <span style="color: #f87171;">${analytics.min.toFixed(1)}</span>
+            <div style="display: flex; justify-content: space-between; padding: 8px; background: var(--bim-ui_bg-contrast-10); border-radius: 6px;">
+              <span style="color: var(--bim-ui_text-dim);">Min:</span>
+              <span style="color: #f87171; font-weight: 600;">${analytics.min.toFixed(1)}</span>
             </div>
-            <div style="display: flex; justify-content: space-between; color: #9ca3af;">
-              <span>Max:</span>
-              <span style="color: #4ade80;">${analytics.max.toFixed(1)}</span>
+            <div style="display: flex; justify-content: space-between; padding: 8px; background: var(--bim-ui_bg-contrast-10); border-radius: 6px;">
+              <span style="color: var(--bim-ui_text-dim);">Max:</span>
+              <span style="color: #4ade80; font-weight: 600;">${analytics.max.toFixed(1)}</span>
             </div>
           </div>
           
           <!-- Charts -->
-          <div style="margin-bottom: 6px;">
-            <div style="font-size: 8px; color: #9ca3af; margin-bottom: 4px;">Flow Rate History</div>
+          <div style="margin-bottom: 12px;">
+            <div style="font-size: 10px; color: var(--bim-ui_text-dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px;">Flow Rate History</div>
             ${createChart(history, "flowRate")}
           </div>
           <div>
-            <div style="font-size: 8px; color: #9ca3af; margin-bottom: 4px;">Pressure History</div>
+            <div style="font-size: 10px; color: var(--bim-ui_text-dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px;">Pressure History</div>
             ${createChart(history, "flowPressure")}
           </div>
         </div>
@@ -248,27 +256,29 @@ export const iotDashboardTemplate: BUI.StatefullComponent<IoTManagerState> = (
       }
 
       <!-- Meter List -->
-      <div style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px;">
-        <div style="font-size: 9px; color: #9ca3af; padding: 4px; position: sticky; top: 0; background: inherit;">
+      <div style="background: var(--bim-ui_bg-card); border: 1px solid var(--bim-ui_bg-contrast-40); border-radius: 12px; padding: 12px; max-height: 220px; overflow-y: auto; box-shadow: 0 4px 16px rgba(0,0,0,0.1);">
+        <div style="font-size: 11px; color: var(--bim-ui_text-dim); padding: 8px; position: sticky; top: 0; background: var(--bim-ui_bg-card); text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">
           Flow Meters (${meters.length})
         </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
         ${meters.map(
           (meter: any) => BUI.html`
           <div 
-            style="display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; 
-                   background: ${_selectedMeterId === meter.id ? "rgba(74, 144, 217, 0.2)" : "rgba(0,0,0,0.2)"}; 
-                   border-radius: 4px; cursor: pointer; border: 1px solid ${_selectedMeterId === meter.id ? "#4a90d9" : "transparent"};"
+            style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; 
+                   background: ${_selectedMeterId === meter.id ? "rgba(96, 165, 250, 0.15)" : "var(--bim-ui_bg-contrast-10)"}; 
+                   border-radius: 8px; cursor: pointer; border: 1px solid ${_selectedMeterId === meter.id ? "#60a5fa" : "transparent"}; transition: all 0.2s;"
             @click=${() => {
               _selectedMeterId = meter.id;
             }}
           >
-            <span style="font-size: 10px; color: #d1d5db;">${meter.id}</span>
-            <span style="font-size: 10px; color: ${meter.flowRate > 150 ? "#4ade80" : meter.flowRate > 80 ? "#fbbf24" : "#f87171"}; font-weight: bold;">
+            <span style="font-size: 11px; color: var(--bim-ui_text-normal); font-weight: 500;">${meter.id}</span>
+            <span style="font-size: 12px; font-weight: 700; color: ${meter.flowRate > 150 ? "#4ade80" : meter.flowRate > 80 ? "#fbbf24" : "#f87171"};">
               ${meter.flowRate.toFixed(0)} L/min
             </span>
           </div>
         `,
         )}
+        </div>
       </div>
     </div>
   `;
