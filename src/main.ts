@@ -155,7 +155,6 @@ fragments.list.onItemSet.add(async ({ value: model }) => {
       })),
     );
     liveIoTManager.createMarkers();
-    liveIoTManager.startSimulation();
   }
 
   const controls = world.camera.controls;

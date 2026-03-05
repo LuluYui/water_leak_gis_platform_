@@ -1,7 +1,6 @@
 import * as OBC from "@thatopen/components";
 import * as BUI from "@thatopen/ui";
 import { ViewerToolbarState, viewerToolbarTemplate } from "..";
-import { finderPanelTemplate } from "../sections/finder";
 import { viewportButtonsTemplate } from "../buttons/viewport-buttons";
 
 type BottomToolbar = { name: "bottomToolbar"; state: ViewerToolbarState };
@@ -11,14 +10,10 @@ type LeftToolbar = {
     components: OBC.Components;
   };
 };
-type FinderPanel = {
-  name: "finderPanel";
-  state: { components: OBC.Components };
-};
 
-type ViewportGridElements = [BottomToolbar, LeftToolbar, FinderPanel];
+type ViewportGridElements = [BottomToolbar, LeftToolbar];
 
-type ViewportGridLayouts = ["main", "finder"];
+type ViewportGridLayouts = ["main"];
 
 interface ViewportGridState {
   components: OBC.Components;
@@ -41,10 +36,6 @@ export const viewportGridTemplate: BUI.StatefullComponent<ViewportGridState> = (
       template: viewerToolbarTemplate,
       initialState: { components, world },
     },
-    finderPanel: {
-      template: finderPanelTemplate,
-      initialState: { components },
-    },
   };
 
   const onCreated = (e?: Element) => {
@@ -55,15 +46,9 @@ export const viewportGridTemplate: BUI.StatefullComponent<ViewportGridState> = (
     grid.layouts = {
       main: {
         template: `
-          "leftToolbar . finderPanel" 1fr
+          "leftToolbar . ." 1fr
           "bottomToolbar bottomToolbar bottomToolbar" auto
           /auto 1fr auto
-        `,
-      },
-      finder: {
-        template: `
-          "finderPanel" 1fr
-          /20rem
         `,
       },
     };
