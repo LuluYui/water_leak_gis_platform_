@@ -1,4 +1,6 @@
 import * as BUI from "@thatopen/ui";
+import * as OBC from "@thatopen/components";
+import * as OBF from "@thatopen/components-front";
 import {
   LiveIoTManager,
   HistoricalDataPoint,
@@ -7,6 +9,8 @@ import { appIcons } from "../../globals";
 
 export interface BimAnalyticsManagerState {
   iotManager: LiveIoTManager;
+  components?: OBC.Components; // Needed for Highlighter access
+  selectedElementId?: string | null; // Digital Twin: ID of the selected 3D element
 }
 
 let _iotManager: LiveIoTManager;
@@ -112,6 +116,35 @@ export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
   BimAnalyticsManagerState
 > = (state, update) => {
   _iotManager = state.iotManager;
+
+  // Digital Twin: Setup Highlighter Listener for Auto-Selection
+  if (state.components) {
+    const highlighter = state.components.get(OBF.Highlighter);
+    if (highlighter && highlighter.events.select) {
+      highlighter.events.select.onHighlight.add((modelIdMap) => {
+        // Find the first selected item
+        const modelId = Object.keys(modelIdMap)[0];
+        if (modelId) {
+          const localIds = modelIdMap[modelId];
+          if (localIds && localIds.size > 0) {
+            // Construct the meter ID (format: modelId-localId)
+            // localIds is a Set, get the first value
+            const firstLocalId = Array.from(localIds)[0];
+            const targetId = `${modelId}-${firstLocalId}`;
+            // Check if this ID exists in our meters
+            const meterExists = _iotManager
+              .getAllFlowMeters()
+              .some((m) => m.id === targetId);
+            if (meterExists) {
+              _selectedMeterId = targetId;
+              update(); // Refresh UI
+            }
+          }
+        }
+      });
+    }
+  }
+
   const meters = _iotManager
     .getAllFlowMeters()
     .sort((a, b) => a.name.localeCompare(b.name));

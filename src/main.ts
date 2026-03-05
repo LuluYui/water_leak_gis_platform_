@@ -86,9 +86,9 @@ components.init();
 const highlighter = components.get(OBF.Highlighter);
 highlighter.setup({ world });
 highlighter.enabled = true;
-
+// Enable picking for digital twin functionality
 const raycaster = components.get(OBC.Raycasters).get(world);
-raycaster.enabled = false;
+raycaster.enabled = true;
 const fragments = components.get(OBC.FragmentsManager);
 fragments.init("/node_modules/@thatopen/fragments/dist/Worker/worker.mjs");
 

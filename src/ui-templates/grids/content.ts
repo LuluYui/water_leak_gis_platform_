@@ -87,7 +87,7 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
       },
       bimAnalytics: {
         template: TEMPLATES.bimAnalyticsDashboardTemplate,
-        initialState: { iotManager: liveIoTManager },
+        initialState: { iotManager: liveIoTManager, components },
       },
       viewer: state.viewportTemplate,
       resizer: () => BUI.html`${resizerElement}`,
