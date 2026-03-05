@@ -247,8 +247,8 @@ export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
         <!-- Active Meter Indicator -->
         <div style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); border-radius: 8px; padding: 12px; margin-bottom: 12px; color: white; text-align: center; border: 1px solid #60a5fa;">
           <div style="font-size: 11px; opacity: 0.8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Active Flow Meter</div>
-          <div style="font-size: 18px; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">
-            ${selectedMeter ? selectedMeter.name : "No Selection"}
+          <div style="font-size: 16px; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">
+            ${selectedMeter ? `${selectedMeter.name} (${selectedMeter.id})` : "No Selection"}
           </div>
         </div>
 
@@ -256,7 +256,7 @@ export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
           <bim-option label="Select Flowmeter" value="" disabled></bim-option>
           ${meters.map(
             (m: any) => BUI.html`
-            <bim-option label="${m.name}" value="${m.id}" ?checked=${m.id === _selectedMeterId}></bim-option>
+            <bim-option label="${m.name} (${m.id})" value="${m.id}" ?checked=${m.id === _selectedMeterId}></bim-option>
           `,
           )}
         </bim-dropdown>
@@ -268,7 +268,7 @@ export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
       ${
         selectedMeter
           ? BUI.html`
-        <bim-panel-section label="${selectedMeter.name} Analysis" icon=${appIcons.TASK}>
+        <bim-panel-section label="${selectedMeter.name} (${selectedMeter.id}) Analysis" icon=${appIcons.TASK}>
          
          <div style="padding: 10px; display: flex; justify-content: space-between; align-items: center;">
             <span style="color: var(--bim-ui_text-normal); font-size: 16px; font-weight: 600;">Analysis Status</span>
