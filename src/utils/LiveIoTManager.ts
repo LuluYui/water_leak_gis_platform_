@@ -404,6 +404,7 @@ export class LiveIoTManager extends SimpleEventEmitter {
       backdrop-filter: blur(4px);
       pointer-events: none;
       display: ${this.markersVisible ? "block" : "none"};
+      z-index: 10000;
     `;
     this.updateMarkerContent(element, meter);
     this.allMarkerElements.push(element);

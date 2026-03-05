@@ -8,6 +8,7 @@ import { viewportSettingsTemplate } from "./ui-templates/buttons/viewport-settin
 import { iotDashboardTemplate } from "./ui-templates/sections/iot-dashboard";
 import { getFlowMetersCoordinates } from "./utils/getFlowMeters";
 import { liveIoTManager } from "./utils/LiveIoTManager";
+import { setupFinderQueries } from "./utils/setupFinder";
 
 BUI.Manager.init();
 
@@ -96,6 +97,8 @@ await ifcLoader.setup({
   autoSetWasm: false,
   wasm: { absolute: true, path: "https://unpkg.com/web-ifc@0.0.74/" },
 });
+
+setupFinderQueries(components);
 
 // Coordinate Display Setup
 const coordDisplay = document.createElement("div");

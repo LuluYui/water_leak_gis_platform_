@@ -30,111 +30,85 @@ function calculateLeakIndicators(history: HistoricalDataPoint[]) {
 function createChart(
   history: HistoricalDataPoint[],
   type: "flowRate" | "flowPressure",
-): HTMLElement {
-  const container = document.createElement("div");
-  container.style.width = "100%";
-  container.style.minWidth = "100px";
-  container.style.maxWidth = "100%";
-  container.style.height = "150px";
-  container.style.position = "relative";
-  container.style.resize = "horizontal";
-  container.style.overflow = "hidden";
-
+): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
-  canvas.style.width = "100%";
-  canvas.style.height = "100%";
-  container.appendChild(canvas);
+  canvas.width = 300;
+  canvas.height = 150;
+  canvas.style.maxWidth = "100%";
+  canvas.style.height = "auto";
+  const ctx = canvas.getContext("2d")!;
 
-  let currentHistory = history;
-  let currentType = type;
+  if (history.length < 2) {
+    ctx.fillStyle = "#6b7280";
+    ctx.font = "12px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(
+      "Insufficient data for chart",
+      canvas.width / 2,
+      canvas.height / 2,
+    );
+    return canvas;
+  }
 
-  const drawChart = () => {
-    const ctx = canvas.getContext("2d")!;
-    const width = canvas.width;
-    const height = canvas.height;
+  const values = history.map((h) => h[type]);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
 
-    if (width === 0 || height === 0) return;
+  const padding = 15;
+  const chartWidth = canvas.width - padding * 2;
+  const chartHeight = canvas.height - padding * 2;
 
-    if (currentHistory.length < 2) {
-      ctx.fillStyle = "#6b7280";
-      ctx.font = "12px sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText("Insufficient data for chart", width / 2, height / 2);
-      return;
-    }
+  // Background
+  ctx.fillStyle = "transparent";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    const values = currentHistory.map((h) => h[currentType]);
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    const range = max - min || 1;
-
-    const padding = 15;
-    const chartWidth = width - padding * 2;
-    const chartHeight = height - padding * 2;
-
-    ctx.fillStyle = "transparent";
-    ctx.fillRect(0, 0, width, height);
-
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= 4; i++) {
-      const y = padding + (chartHeight / 4) * i;
-      ctx.beginPath();
-      ctx.moveTo(padding, y);
-      ctx.lineTo(width - padding, y);
-      ctx.stroke();
-    }
-
-    const color = currentType === "flowRate" ? "#4ade80" : "#f87171";
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
+  // Grid lines
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = padding + (chartHeight / 4) * i;
     ctx.beginPath();
-
-    for (let i = 0; i < values.length; i++) {
-      const x = padding + (i / (values.length - 1)) * chartWidth;
-      const y =
-        padding + chartHeight - ((values[i] - min) / range) * chartHeight;
-
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    }
+    ctx.moveTo(padding, y);
+    ctx.lineTo(canvas.width - padding, y);
     ctx.stroke();
+  }
 
-    ctx.lineTo(padding + chartWidth, padding + chartHeight);
-    ctx.lineTo(padding, padding + chartHeight);
-    ctx.closePath();
-    ctx.globalAlpha = 0.2;
-    ctx.fillStyle = color;
-    ctx.fill();
-    ctx.globalAlpha = 1;
+  // Line
+  const color = type === "flowRate" ? "#4ade80" : "#f87171";
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
 
-    ctx.fillStyle = "#9ca3af";
-    ctx.font = "10px sans-serif";
-    ctx.textAlign = "left";
-    ctx.fillText(max.toFixed(1), 2, padding + 8);
-    ctx.fillText(min.toFixed(1), 2, height - 4);
-  };
+  for (let i = 0; i < values.length; i++) {
+    const x = padding + (i / (values.length - 1)) * chartWidth;
+    const y = padding + chartHeight - ((values[i] - min) / range) * chartHeight;
 
-  const resizeObserver = new ResizeObserver(() => {
-    drawChart();
-  });
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
 
-  resizeObserver.observe(container);
+  // Fill
+  ctx.lineTo(padding + chartWidth, padding + chartHeight);
+  ctx.lineTo(padding, padding + chartHeight);
+  ctx.closePath();
+  ctx.fillStyle = color
+    .replace(")", ", 0.1)")
+    .replace("rgb", "rgba")
+    .replace("#", "rgba(");
+  ctx.globalAlpha = 0.2;
+  ctx.fill();
+  ctx.globalAlpha = 1;
 
-  (container as any).updateChart = (
-    newHistory: HistoricalDataPoint[],
-    newType: "flowRate" | "flowPressure",
-  ) => {
-    currentHistory = newHistory;
-    currentType = newType;
-    drawChart();
-  };
+  // Labels
+  ctx.fillStyle = "#9ca3af";
+  ctx.font = "10px sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText(max.toFixed(1), 2, padding + 8);
+  ctx.fillText(min.toFixed(1), 2, canvas.height - 4);
 
-  requestAnimationFrame(() => {
-    drawChart();
-  });
-
-  return container;
+  return canvas;
 }
 
 export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
