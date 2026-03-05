@@ -33,7 +33,9 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
   AnalyticsManagerState
 > = (state, update) => {
   _iotManager = state.iotManager;
-  const meters = _iotManager.getAllFlowMeters();
+  const meters = _iotManager
+    .getAllFlowMeters()
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   if (!_selectedMeterId && meters.length > 0) {
     _selectedMeterId = meters[0].id;

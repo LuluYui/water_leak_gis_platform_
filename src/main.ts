@@ -87,6 +87,7 @@ highlighter.setup({ world });
 highlighter.enabled = true;
 
 const raycaster = components.get(OBC.Raycasters).get(world);
+raycaster.enabled = false;
 const fragments = components.get(OBC.FragmentsManager);
 fragments.init("/node_modules/@thatopen/fragments/dist/Worker/worker.mjs");
 

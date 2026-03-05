@@ -155,7 +155,7 @@ export const viewerToolbarTemplate: BUI.StatefullComponent<
   };
 
   return BUI.html`
-    <bim-toolbar>
+    <bim-toolbar style="margin: 1rem; align-self: end;">
       <bim-toolbar-section label="Visibility" icon=${appIcons.SHOW}>
         <bim-button tooltip-title=${tooltips.SHOW_ALL.TITLE} tooltip-text=${tooltips.SHOW_ALL.TEXT} icon=${appIcons.SHOW} label="Show All" @click=${onShowAll}></bim-button> 
         <bim-button tooltip-title=${tooltips.GHOST.TITLE} tooltip-text=${tooltips.GHOST.TEXT} icon=${appIcons.TRANSPARENT} label="Toggle Ghost" @click=${onToggleGhost}></bim-button>

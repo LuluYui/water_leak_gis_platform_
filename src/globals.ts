@@ -26,6 +26,8 @@ export const appIcons = {
   LIGHT: "tabler:sun-filled",
   SEARCH: "tabler:search",
   CHART: "solar:chart-bold",
+  GRID: "mdi:grid",
+  MARKER: "mdi:map-marker",
 };
 
 export const tooltips = {
@@ -48,5 +50,17 @@ export const tooltips = {
   SHOW_ALL: {
     TITLE: "Show All Items",
     TEXT: "Reset the visibility of all hidden items, so they become visible again.",
+  },
+  GRID: {
+    TITLE: "Toggle Grid",
+    TEXT: "Toggle the visibility of the grid in the viewport.",
+  },
+  MARKERS: {
+    TITLE: "Toggle Markers",
+    TEXT: "Toggle the visibility of the markers in the viewport.",
+  },
+  FILTER: {
+    TITLE: "Toggle Filter",
+    TEXT: "Show or hide the filter panel.",
   },
 };

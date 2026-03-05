@@ -3,7 +3,6 @@ export * from "./elements-data";
 export * from "./viewpoints";
 export * from "./combined";
 export * from "./finder";
-export * from "./raycaster";
 export * from "./iot-dashboard";
 export * from "./analytics-dashboard";
 export * from "./bim-analytics-dashboard";

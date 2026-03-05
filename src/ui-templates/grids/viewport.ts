@@ -1,28 +1,22 @@
 import * as OBC from "@thatopen/components";
-import * as OBF from "@thatopen/components-front";
 import * as BUI from "@thatopen/ui";
 import { ViewerToolbarState, viewerToolbarTemplate } from "..";
-import { appIcons } from "../../globals";
 import { finderPanelTemplate } from "../sections/finder";
-import { raycasterPanelTemplate } from "../sections/raycaster";
+import { viewportButtonsTemplate } from "../buttons/viewport-buttons";
 
 type BottomToolbar = { name: "bottomToolbar"; state: ViewerToolbarState };
-type LeftToolbar = { name: "leftToolbar"; state: {} };
+type LeftToolbar = {
+  name: "leftToolbar";
+  state: {
+    components: OBC.Components;
+  };
+};
 type FinderPanel = {
   name: "finderPanel";
   state: { components: OBC.Components };
 };
-type RaycasterPanel = {
-  name: "raycasterPanel";
-  state: { components: OBC.Components };
-};
 
-type ViewportGridElements = [
-  BottomToolbar,
-  LeftToolbar,
-  FinderPanel,
-  RaycasterPanel,
-];
+type ViewportGridElements = [BottomToolbar, LeftToolbar, FinderPanel];
 
 type ViewportGridLayouts = ["main", "finder"];
 
@@ -36,94 +30,19 @@ export const viewportGridTemplate: BUI.StatefullComponent<ViewportGridState> = (
 ) => {
   const { components, world } = state;
 
-  const leftToolbarTemplate: BUI.StatefullComponent = (_: {}, update) => {
-    const highlighter = components.get(OBF.Highlighter);
-    const lengthMeasurer = components.get(OBF.LengthMeasurement);
-    const areaMeasurer = components.get(OBF.AreaMeasurement);
-    const clipper = components.get(OBC.Clipper);
-
-    const areMeasurementsEnabled =
-      lengthMeasurer.enabled || areaMeasurer.enabled;
-
-    const disableAll = (exceptions?: ("clipper" | "length" | "area")[]) => {
-      BUI.ContextMenu.removeMenus();
-      highlighter.clear("select");
-      highlighter.enabled = false;
-      if (!exceptions?.includes("length")) lengthMeasurer.enabled = false;
-      if (!exceptions?.includes("area")) areaMeasurer.enabled = false;
-      if (!exceptions?.includes("clipper")) clipper.enabled = false;
-    };
-
-    const onLengthMeasurement = () => {
-      disableAll(["length"]);
-      lengthMeasurer.enabled = !lengthMeasurer.enabled;
-      highlighter.enabled = !lengthMeasurer.enabled;
-      update();
-    };
-
-    const onAreaMeasurement = () => {
-      disableAll(["area"]);
-      areaMeasurer.enabled = !areaMeasurer.enabled;
-      highlighter.enabled = !areaMeasurer.enabled;
-      update();
-    };
-
-    const onModelSection = () => {
-      disableAll(["clipper"]);
-      clipper.enabled = !clipper.enabled;
-      highlighter.enabled = !clipper.enabled;
-      update();
-    };
-
-    const onMeasurementsClick = () => {
-      lengthMeasurer.enabled = false;
-      areaMeasurer.enabled = false;
-      update();
-    };
-
-    const onToggleTheme = () => {
-      const html = document.documentElement;
-      if (html.classList.contains("bim-ui-dark")) {
-        html.classList.remove("bim-ui-dark");
-        html.classList.add("bim-ui-light");
-      } else {
-        html.classList.remove("bim-ui-light");
-        html.classList.add("bim-ui-dark");
-      }
-    };
-
-    return BUI.html`
-      <bim-toolbar style="align-self: start;" vertical>
-        <bim-toolbar-section>
-          <bim-button @click=${onMeasurementsClick} ?active=${areMeasurementsEnabled} label="Measurements" tooltip-title="Measurements" icon=${appIcons.RULER}>
-            <bim-context-menu>
-              <bim-button ?active=${lengthMeasurer.enabled} label="Length" @click=${onLengthMeasurement}></bim-button>
-              <bim-button ?active=${areaMeasurer.enabled} label="Area" @click=${onAreaMeasurement}></bim-button>
-            </bim-context-menu>
-          </bim-button>
-              <bim-button ?active=${clipper.enabled} @click=${onModelSection} label="Section" tooltip-title="Model Section" icon=${appIcons.CLIPPING}></bim-button>
-              <bim-button label="Settings" tooltip-title="Settings" icon=${appIcons.DARK}>
-                <bim-context-menu>
-                  <bim-button label="Toggle Theme" @click=${onToggleTheme}></bim-button>
-                </bim-context-menu>
-              </bim-button> 
-             </bim-toolbar-section>
-         </bim-toolbar>
-    `;
-  };
-
   const elements: BUI.GridComponents<ViewportGridElements> = {
-    leftToolbar: { template: leftToolbarTemplate, initialState: {} },
+    leftToolbar: {
+      template: viewportButtonsTemplate,
+      initialState: {
+        components,
+      },
+    },
     bottomToolbar: {
       template: viewerToolbarTemplate,
       initialState: { components, world },
     },
     finderPanel: {
       template: finderPanelTemplate,
-      initialState: { components },
-    },
-    raycasterPanel: {
-      template: raycasterPanelTemplate,
       initialState: { components },
     },
   };
@@ -136,8 +55,7 @@ export const viewportGridTemplate: BUI.StatefullComponent<ViewportGridState> = (
     grid.layouts = {
       main: {
         template: `
-          "leftToolbar empty raycasterPanel" auto
-          "leftToolbar empty finderPanel" 1fr
+          "leftToolbar . finderPanel" 1fr
           "bottomToolbar bottomToolbar bottomToolbar" auto
           /auto 1fr auto
         `,

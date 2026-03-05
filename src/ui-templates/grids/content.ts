@@ -69,13 +69,13 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
       Analytics: {
         template: `
                     "viewer analytics" 1fr
-                    /1fr 15rem
+                    /1fr 60rem
                 `,
       },
       BimAnalytics: {
         template: `
                     "viewer bimAnalytics" 1fr
-                    /1fr 15rem
+                    /1fr 60rem
                 `,
       },
     };
