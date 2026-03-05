@@ -37,7 +37,6 @@ const formatInterval = (ms: number): string => {
   return `${ms}ms`;
 };
 
-let _isFilterVisible = true;
 let _isSimulationMenuOpen = false;
 
 export const viewportButtonsTemplate: BUI.StatefullComponent<
@@ -102,17 +101,6 @@ export const viewportButtonsTemplate: BUI.StatefullComponent<
     update();
   };
 
-  const onToggleFilter = () => {
-    _isFilterVisible = !_isFilterVisible;
-    const finderPanel = document.querySelector(
-      "bim-panel-section[label='Filter']",
-    ) as HTMLElement;
-    if (finderPanel) {
-      finderPanel.style.display = _isFilterVisible ? "flex" : "none";
-    }
-    update();
-  };
-
   const onMeasurementsClick = () => {
     lengthMeasurer.enabled = false;
     areaMeasurer.enabled = false;
@@ -132,7 +120,6 @@ export const viewportButtonsTemplate: BUI.StatefullComponent<
 
   const currentIntervalMs = liveIoTManager.getUpdateInterval();
   const currentSliderValue = intervalToSlider(currentIntervalMs);
-  const isSimulationRunning = currentIntervalMs > 0;
 
   const onSimulationChange = ({ target }: { target: HTMLInputElement }) => {
     const sliderValue = parseInt(target.value);
@@ -158,7 +145,6 @@ export const viewportButtonsTemplate: BUI.StatefullComponent<
         <bim-button ?active=${clipper.enabled} @click=${onModelSection} label="Section" tooltip-title="Model Section" icon=${appIcons.CLIPPING}></bim-button>
         <bim-button ?active=${isMarkersVisible} @click=${onToggleMarkers} label="Markers" tooltip-title=${tooltips.MARKERS.TITLE} icon=${appIcons.MARKER}></bim-button>
         <bim-button ?active=${isGridVisible} @click=${onToggleGrid} label="Grid" tooltip-title=${tooltips.GRID.TITLE} icon=${appIcons.GRID}></bim-button>
-        <bim-button ?active=${_isFilterVisible} @click=${onToggleFilter} label="Filter" tooltip-title=${tooltips.FILTER.TITLE} icon=${appIcons.SEARCH}></bim-button>
         <bim-button ?active=${_isSimulationMenuOpen} @click=${onToggleSimulationMenu} label="Simulation" tooltip-title=${tooltips.SIMULATION.TITLE} tooltip-text=${tooltips.SIMULATION.TEXT} icon=${appIcons.SIMULATION}>
           <bim-context-menu ?active=${_isSimulationMenuOpen} style="min-width: 220px; padding: 8px;">
             <div style="display: flex; flex-direction: column; gap: 8px;">
@@ -176,8 +162,8 @@ export const viewportButtonsTemplate: BUI.StatefullComponent<
                 style="width: 100%; cursor: pointer;"
               >
               <div style="display: flex; justify-content: space-between; font-size: 10px; color: #888;">
-                <span>100ms</span>
                 <span>5s</span>
+                <span>100ms</span>
               </div>
             </div>
           </bim-context-menu>

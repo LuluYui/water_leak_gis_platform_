@@ -28,6 +28,7 @@ export const appIcons = {
   CHART: "solar:chart-bold",
   GRID: "mdi:grid",
   MARKER: "mdi:map-marker",
+  SIMULATION: "mdi:speedometer",
 };
 
 export const tooltips = {
@@ -62,5 +63,9 @@ export const tooltips = {
   FILTER: {
     TITLE: "Toggle Filter",
     TEXT: "Show or hide the filter panel.",
+  },
+  SIMULATION: {
+    TITLE: "Live Data Updates",
+    TEXT: "Turn live updates on or off with a click. Use the slider to choose how often you want to see new data—faster for real-time views, or slower to keep the screen steady.",
   },
 };

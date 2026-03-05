@@ -1,11 +1,28 @@
 import * as BUI from "@thatopen/ui";
 import * as OBC from "@thatopen/components";
-import interact from "interactjs";
 import { appIcons } from "../../globals";
 
 export interface FinderPanelState {
   components: OBC.Components;
 }
+
+export interface FloatingPanelConfig {
+  icon: string;
+  label: string;
+}
+
+export const createFloatingPanelTemplate = <T extends FinderPanelState>(
+  config: FloatingPanelConfig,
+  contentTemplate: (state: T) => BUI.TemplateResult,
+): ((state: T) => BUI.TemplateResult) => {
+  return (state: T) => {
+    return BUI.html`
+      <bim-panel-section fixed icon=${config.icon} label=${config.label}>
+        ${contentTemplate(state)}
+      </bim-panel-section>
+    `;
+  };
+};
 
 export const finderPanelTemplate: BUI.StatefullComponent<FinderPanelState> = (
   state,
@@ -14,32 +31,6 @@ export const finderPanelTemplate: BUI.StatefullComponent<FinderPanelState> = (
 
   const finder = components.get(OBC.ItemsFinder);
   const hider = components.get(OBC.Hider);
-
-  const initDraggable = (el: Element | undefined) => {
-    if (!el) return;
-    const panel = el as HTMLElement;
-    panel.style.position = "absolute";
-    panel.style.zIndex = "100";
-    panel.style.top = "1rem";
-    panel.style.right = "1rem";
-    panel.style.touchAction = "none";
-    panel.style.width = "20rem";
-
-    interact(panel).draggable({
-      listeners: {
-        move(event) {
-          const { target } = event;
-          const x = (parseFloat(target.getAttribute("data-x")) || 0) + event.dx;
-          const y = (parseFloat(target.getAttribute("data-y")) || 0) + event.dy;
-
-          target.style.transform = `translate(${x}px, ${y}px)`;
-
-          target.setAttribute("data-x", x);
-          target.setAttribute("data-y", y);
-        },
-      },
-    });
-  };
 
   const createFinderQueries = () => {
     finder.create("FlowMeters", [
@@ -109,7 +100,7 @@ export const finderPanelTemplate: BUI.StatefullComponent<FinderPanelState> = (
   const finderQueries = Array.from(finder.list.keys());
 
   return BUI.html`
-        <bim-panel-section fixed icon=${appIcons.SEARCH} label="Filter" style="margin: 1rem; align-self: start;" ${BUI.ref(initDraggable)}>
+        <bim-panel-section fixed icon=${appIcons.SEARCH} label="Filter" style="margin: 1rem; align-self: start;">
             <bim-button style="width: 100%;" label="Reset Visibility" @click=${onResetVisibility}></bim-button>
             <bim-panel-section style="gap: 0.25rem; max-height: 400px; overflow-y: auto; overflow-x: hidden;">
                 ${
