@@ -34,6 +34,8 @@ function createChart(
   const canvas = document.createElement("canvas");
   canvas.width = 300;
   canvas.height = 150;
+  canvas.style.maxWidth = "100%";
+  canvas.style.height = "auto";
   const ctx = canvas.getContext("2d")!;
 
   if (history.length < 2) {

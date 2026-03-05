@@ -8,6 +8,7 @@ import { viewportSettingsTemplate } from "./ui-templates/buttons/viewport-settin
 import { iotDashboardTemplate } from "./ui-templates/sections/iot-dashboard";
 import { getFlowMetersCoordinates } from "./utils/getFlowMeters";
 import { liveIoTManager } from "./utils/LiveIoTManager";
+import { setupFinderQueries } from "./utils/setupFinder";
 
 BUI.Manager.init();
 
@@ -97,13 +98,15 @@ await ifcLoader.setup({
   wasm: { absolute: true, path: "https://unpkg.com/web-ifc@0.0.74/" },
 });
 
+setupFinderQueries(components);
+
 // Coordinate Display Setup
 const coordDisplay = document.createElement("div");
 coordDisplay.id = "coord-display";
 coordDisplay.style.cssText = `
   position: fixed;
-  bottom: 20px;
-  left: 20px;
+  bottom: 30px;
+  left: 100px;
   background: rgba(0, 0, 0, 0.8);
   color: white;
   padding: 8px 12px;
@@ -155,7 +158,6 @@ fragments.list.onItemSet.add(async ({ value: model }) => {
       })),
     );
     liveIoTManager.createMarkers();
-    liveIoTManager.startSimulation();
   }
 
   const controls = world.camera.controls;

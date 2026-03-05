@@ -66,7 +66,7 @@ export class LiveIoTManager extends SimpleEventEmitter {
   private historicalData: Map<string, HistoricalDataPoint[]> = new Map();
   private maxHistoryPoints: number = 100;
 
-  private updateIntervalMs: number = 5000;
+  private updateIntervalMs: number = 0;
   private intervalId: ReturnType<typeof setInterval> | null = null;
   private running: boolean = false;
 
@@ -76,6 +76,22 @@ export class LiveIoTManager extends SimpleEventEmitter {
   private allMarkerElements: HTMLElement[] = [];
   private allClusterElements: HTMLElement[] = [];
   private autoClusterOriginallyEnabled: boolean = true;
+
+  public setUpdateInterval(ms: number): void {
+    this.updateIntervalMs = ms;
+    if (this.running) {
+      this.stopSimulation();
+      if (ms > 0) {
+        this.startSimulation();
+      }
+    } else if (ms > 0) {
+      this.startSimulation();
+    }
+  }
+
+  public getUpdateInterval(): number {
+    return this.updateIntervalMs;
+  }
 
   initialize(
     components: OBC.Components,
@@ -388,6 +404,7 @@ export class LiveIoTManager extends SimpleEventEmitter {
       backdrop-filter: blur(4px);
       pointer-events: none;
       display: ${this.markersVisible ? "block" : "none"};
+      z-index: 10000;
     `;
     this.updateMarkerContent(element, meter);
     this.allMarkerElements.push(element);
