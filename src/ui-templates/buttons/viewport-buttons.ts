@@ -17,18 +17,18 @@ const sliderToInterval = (sliderValue: number): number => {
   const normalized = sliderValue / SLIDER_MAX;
   const logMin = Math.log(MIN_INTERVAL_MS);
   const logMax = Math.log(MAX_INTERVAL_MS);
-  const logValue = logMin + normalized * (logMax - logMin);
+  const logValue = logMin + (1 - normalized) * (logMax - logMin);
   return Math.round(Math.exp(logValue));
 };
 
 const intervalToSlider = (intervalMs: number): number => {
   if (intervalMs === 0) return 0;
-  if (intervalMs >= MAX_INTERVAL_MS) return SLIDER_MAX;
-  if (intervalMs <= MIN_INTERVAL_MS) return 1;
+  if (intervalMs >= MAX_INTERVAL_MS) return 0;
+  if (intervalMs <= MIN_INTERVAL_MS) return SLIDER_MAX;
   const logMin = Math.log(MIN_INTERVAL_MS);
   const logMax = Math.log(MAX_INTERVAL_MS);
   const logValue = Math.log(intervalMs);
-  return Math.round(((logValue - logMin) / (logMax - logMin)) * SLIDER_MAX);
+  return Math.round((1 - (logValue - logMin) / (logMax - logMin)) * SLIDER_MAX);
 };
 
 const formatInterval = (ms: number): string => {
@@ -176,9 +176,8 @@ export const viewportButtonsTemplate: BUI.StatefullComponent<
                 style="width: 100%; cursor: pointer;"
               >
               <div style="display: flex; justify-content: space-between; font-size: 10px; color: #888;">
-                <span>Off</span>
-                <span>5s</span>
                 <span>100ms</span>
+                <span>5s</span>
               </div>
             </div>
           </bim-context-menu>
