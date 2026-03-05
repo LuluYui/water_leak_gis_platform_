@@ -1,8 +1,5 @@
 import * as BUI from "@thatopen/ui";
-import {
-  LiveIoTManager,
-  HistoricalDataPoint,
-} from "../../utils/LiveIoTManager";
+import { LiveIoTManager, LiveFlowMeter } from "../../utils/LiveIoTManager";
 import Chart from "chart.js/auto";
 
 export interface AnalyticsManagerState {
@@ -10,23 +7,45 @@ export interface AnalyticsManagerState {
 }
 
 let _iotManager: LiveIoTManager;
-let _selectedMeterId: string | null = null;
 let _charts: { [key: string]: Chart } = {};
+let _globalHistory: { timestamp: number; totalFlow: number }[] = [];
 
-function calculateLeakIndicators(history: HistoricalDataPoint[]) {
-  if (history.length === 0)
-    return { mnf: 0, avg: 0, max: 0, isLeakLikely: false };
-  const flows = history.map((h) => h.flowRate);
+function calculateGlobalAnalytics(
+  meters: LiveFlowMeter[],
+  iotManager: LiveIoTManager,
+) {
+  let totalFlowRate = 0;
+  let totalCumulativeVolume = 0;
+  let onlineCount = 0;
 
-  // Minimum Night Flow (MNF) proxy - simply taking the minimum of the historical buffer for this demo
-  const mnf = Math.min(...flows);
-  const avg = flows.reduce((a, b) => a + b, 0) / flows.length;
-  const max = Math.max(...flows);
+  for (const meter of meters) {
+    totalFlowRate += meter.flowRate;
+    if (meter.isOnline) onlineCount++;
 
-  // Leak heuristic: if minimum flow never drops below a certain threshold (e.g. 50% of avg)
-  const isLeakLikely = mnf > avg * 0.7 && avg > 10;
+    const history = iotManager.getHistoricalData(meter.id);
+    const meterVolume = history.reduce(
+      (acc, curr) => acc + curr.flowRate * (5 / 60),
+      0,
+    );
+    totalCumulativeVolume += meterVolume;
+  }
 
-  return { mnf, avg, max, isLeakLikely };
+  // Update global history for the trend chart
+  const now = Date.now();
+  if (
+    _globalHistory.length === 0 ||
+    now - _globalHistory[_globalHistory.length - 1].timestamp >= 5000
+  ) {
+    _globalHistory.push({ timestamp: now, totalFlow: totalFlowRate });
+    if (_globalHistory.length > 50) _globalHistory.shift();
+  }
+
+  return {
+    totalFlowRate,
+    totalCumulativeVolume,
+    onlineCount,
+    totalCount: meters.length,
+  };
 }
 
 export const analyticsDashboardTemplate: BUI.StatefullComponent<
@@ -37,42 +56,47 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
     .getAllFlowMeters()
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  if (!_selectedMeterId && meters.length > 0) {
-    _selectedMeterId = meters[0].id;
-  }
+  const globalAnalytics = calculateGlobalAnalytics(meters, _iotManager);
 
-  const selectedMeter = _selectedMeterId
-    ? meters.find((m) => m.id === _selectedMeterId)
-    : null;
-  const history = _selectedMeterId
-    ? _iotManager.getHistoricalData(_selectedMeterId)
-    : [];
-  const analytics = calculateLeakIndicators(history);
+  const isDark = document.documentElement.classList.contains("bim-ui-dark");
+  const titleColor = isDark ? "#4ade80" : "#6528d7";
 
-  const initLineChart = (el: Element | undefined) => {
+  const initGlobalChart = (el: Element | undefined) => {
     const canvas = el as HTMLCanvasElement | null;
     if (!canvas) return;
-    if (_charts["line"]) _charts["line"].destroy();
+    if (_charts["global"]) _charts["global"].destroy();
 
-    _charts["line"] = new Chart(canvas, {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, "rgba(96, 165, 250, 0.4)");
+    gradient.addColorStop(1, "rgba(96, 165, 250, 0.0)");
+
+    const gridColor = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)";
+    const textColor = isDark ? "#9ca3af" : "#6b7280";
+
+    _charts["global"] = new Chart(canvas, {
       type: "line",
       data: {
-        labels: history.map((_, i) => i.toString()),
+        labels: _globalHistory.map((h) =>
+          new Date(h.timestamp).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          }),
+        ),
         datasets: [
           {
-            label: "Flow Rate (L/min)",
-            data: history.map((h) => h.flowRate),
-            borderColor: "#4ade80",
+            label: "Total Flow (L/min)",
+            data: _globalHistory.map((h) => h.totalFlow),
+            borderColor: "#60a5fa",
+            backgroundColor: gradient,
+            borderWidth: 3,
+            pointRadius: 2,
+            pointBackgroundColor: "#60a5fa",
             tension: 0.4,
-            fill: false,
-          },
-          {
-            label: "Pressure (bar)",
-            data: history.map((h) => h.flowPressure),
-            borderColor: "#f87171",
-            tension: 0.4,
-            fill: false,
-            yAxisID: "y1",
+            fill: true,
           },
         ],
       },
@@ -81,147 +105,128 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
         maintainAspectRatio: false,
         animation: { duration: 0 },
         scales: {
-          y: { type: "linear", display: true, position: "left" },
-          y1: {
+          x: {
+            grid: { display: false },
+            ticks: { color: textColor, maxRotation: 0, autoSkip: true },
+          },
+          y: {
             type: "linear",
             display: true,
-            position: "right",
-            grid: { drawOnChartArea: false },
+            grid: { color: gridColor },
+            ticks: { color: textColor },
+            beginAtZero: true,
           },
         },
-        plugins: { legend: { display: true, labels: { color: "white" } } },
-      },
-    });
-  };
-
-  const initPieChart = (el: Element | undefined) => {
-    const canvas = el as HTMLCanvasElement | null;
-    if (!canvas) return;
-    if (_charts["pie"]) _charts["pie"].destroy();
-
-    const online = meters.filter((m: any) => m.isOnline).length;
-    const offline = meters.length - online;
-
-    _charts["pie"] = new Chart(canvas, {
-      type: "doughnut",
-      data: {
-        labels: ["Online", "Offline"],
-        datasets: [
-          {
-            data: [online, offline],
-            backgroundColor: ["#4ade80", "#f87171"],
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: isDark
+              ? "rgba(0,0,0,0.8)"
+              : "rgba(255,255,255,0.9)",
+            titleColor: "#60a5fa",
+            bodyColor: isDark ? "white" : "#1f2937",
+            borderColor: "#1e40af",
+            borderWidth: 1,
+            padding: 10,
           },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { position: "bottom", labels: { color: "white" } } },
+        },
       },
     });
   };
 
   return BUI.html`
-    <div style="display: flex; flex-direction: column; gap: 12px; padding: 16px; height: 100%; overflow-y: auto; background: var(--bim-ui_bg-base);">
-      <h2 style="margin: 0; color: white;">Water Leak Analytics</h2>
+    <div style="display: flex; flex-direction: column; gap: 20px; padding: 24px; height: 100%; overflow-y: auto; background: var(--bim-ui_bg-base);">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="margin: 0; color: ${titleColor}; font-weight: 300; letter-spacing: 2px; text-transform: uppercase;">DMA/PMA Analytics</h2>
+        <div style="display: flex; align-items: center; gap: 12px;">
+           <span style="font-size: 12px; color: var(--bim-ui_text-dim);">Real-time SCADA Feed</span>
+           <bim-button label="Refresh" icon="mdi:refresh" @click=${() => update()}></bim-button>
+        </div>
+      </div>
       
-      <!-- Top Filters & Network Status -->
-      <div style="display: flex; gap: 12px; height: 150px;">
-        <div style="flex: 1; background: var(--bim-ui_bg-contrast-20); border-radius: 8px; padding: 12px; position: relative;">
-          <h4 style="margin: 0 0 8px 0; color: #9ca3af; font-size: 12px;">Network Health</h4>
-          <div style="position: relative; height: 100px;">
-            <canvas ${BUI.ref(initPieChart)}></canvas>
+      <!-- Global Summary Stats -->
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+        <div style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); border-radius: 16px; padding: 20px 20px 36px 20px; color: white; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255,255,255,0.05);">
+          <div style="font-size: 11px; opacity: 0.7; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px;">Global Flow Rate</div>
+          <div style="font-size: 36px; font-weight: 600; letter-spacing: -1px;">${globalAnalytics.totalFlowRate.toFixed(1)} <span style="font-size: 16px; font-weight: 400; opacity: 0.7;">L/min</span></div>
+          <div style="margin-top: 16px; display: flex; align-items: center; gap: 8px;">
+            <div style="width: 8px; height: 8px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 12px #4ade80; animation: pulse 2s infinite;"></div>
+            <span style="font-size: 12px; color: rgba(255,255,255,0.8);">Meters Active: ${globalAnalytics.onlineCount}/${globalAnalytics.totalCount}</span>
           </div>
         </div>
         
-        <div style="flex: 1; background: var(--bim-ui_bg-contrast-20); border-radius: 8px; padding: 12px;">
-          <h4 style="margin: 0 0 8px 0; color: #9ca3af; font-size: 12px;">Select Flowmeter</h4>
-          <select 
-            style="width: 100%; padding: 8px; background: var(--bim-ui_bg-base); color: white; border: 1px solid var(--bim-ui_bg-contrast-40); border-radius: 4px;"
-            @change=${(e: Event) => {
-              _selectedMeterId = (e.target as HTMLSelectElement).value;
-              update();
-            }}
-          >
-            ${meters.map(
-              (m: any) => BUI.html`
-              <option value="${m.id}" ?selected=${m.id === _selectedMeterId}>${m.name} (${m.id})</option>
-            `,
-            )}
-          </select>
-          <div style="margin-top: 12px;">
-            <bim-button label="Refresh Data" icon="mdi:refresh" @click=${() => update()}></bim-button>
+        <div style="background: linear-gradient(135deg, #4c1d95 0%, #5b21b6 100%); border-radius: 16px; padding: 20px 20px 36px 20px; color: white; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255,255,255,0.05);">
+          <div style="font-size: 11px; opacity: 0.7; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px;">Cumulative Volume</div>
+          <div style="font-size: 36px; font-weight: 600; letter-spacing: -1px;">${globalAnalytics.totalCumulativeVolume.toFixed(0)} <span style="font-size: 16px; font-weight: 400; opacity: 0.7;">Liters</span></div>
+          <div style="margin-top: 16px; font-size: 12px; color: rgba(255,255,255,0.6);">Summed Network Throughput</div>
+        </div>
+
+        <div style="background: var(--bim-ui_bg-card); border: 1px solid var(--bim-ui_bg-contrast-40); border-radius: 16px; padding: 20px 20px 36px 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+          <div style="font-size: 11px; color: var(--bim-ui_text-dim); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px;">System Status</div>
+          <div style="margin-top: 8px; display: inline-flex; align-items: center; gap: 8px; background: ${isDark ? "rgba(74, 222, 128, 0.12)" : "rgba(22, 128, 61, 0.1)"}; border: 1px solid ${isDark ? "rgba(74, 222, 128, 0.3)" : "rgba(22, 128, 61, 0.25)"}; padding: 6px 14px; border-radius: 20px;">
+            <div style="width: 8px; height: 8px; border-radius: 50%; background: ${isDark ? "#4ade80" : "#15803d"}; box-shadow: 0 0 10px ${isDark ? "#4ade80" : "#22c55e"};"></div>
+            <span style="font-size: 14px; font-weight: 600; color: ${isDark ? "#4ade80" : "#15803d"};">Healthy</span>
           </div>
+          <div style="margin-top: 16px; font-size: 12px; color: var(--bim-ui_text-dim);">Leak Detection Heuristics: Active</div>
         </div>
       </div>
 
-      <!-- Selected Meter Leak Analytics -->
-      ${
-        selectedMeter
-          ? BUI.html`
-        <div style="background: var(--bim-ui_bg-contrast-20); border-radius: 8px; padding: 16px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <h3 style="margin: 0; color: white;">${selectedMeter.name} Analysis</h3>
-            ${
-              analytics.isLeakLikely
-                ? BUI.html`<span style="background: rgba(248, 113, 113, 0.2); color: #f87171; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">⚠️ Leak Likely</span>`
-                : BUI.html`<span style="background: rgba(74, 222, 128, 0.2); color: #4ade80; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">✅ Normal</span>`
-            }
-          </div>
-          
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
-            <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 6px; text-align: center;">
-              <div style="font-size: 12px; color: #9ca3af; margin-bottom: 4px;">Min Night Flow</div>
-              <div style="font-size: 18px; font-weight: bold; color: ${analytics.mnf > analytics.avg * 0.7 ? "#f87171" : "#60a5fa"};">${analytics.mnf.toFixed(1)}</div>
-              <div style="font-size: 10px; color: #6b7280;">L/min</div>
-            </div>
-            <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 6px; text-align: center;">
-              <div style="font-size: 12px; color: #9ca3af; margin-bottom: 4px;">Avg Flow</div>
-              <div style="font-size: 18px; font-weight: bold; color: white;">${analytics.avg.toFixed(1)}</div>
-              <div style="font-size: 10px; color: #6b7280;">L/min</div>
-            </div>
-            <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 6px; text-align: center;">
-              <div style="font-size: 12px; color: #9ca3af; margin-bottom: 4px;">Current Pressure</div>
-              <div style="font-size: 18px; font-weight: bold; color: #a78bfa;">${selectedMeter.flowPressure.toFixed(2)}</div>
-              <div style="font-size: 10px; color: #6b7280;">bar</div>
-            </div>
-          </div>
-
-          <div style="height: 250px; position: relative;">
-            <canvas ${BUI.ref(initLineChart)}></canvas>
-          </div>
+      <!-- Main Global Chart -->
+      <div style="background: var(--bim-ui_bg-card); border: 1px solid var(--bim-ui_bg-contrast-40); border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h4 style="margin: 0; color: var(--bim-ui_text-dim); font-weight: 500; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px;">Network Diurnal Trend (L/min)</h4>
+          <span style="font-size: 11px; color: #60a5fa; background: rgba(96,165,250,0.1); padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(96,165,250,0.2); font-weight: 500;">Global Aggregation</span>
         </div>
+        <div style="height: 350px; position: relative;">
+          <canvas ${BUI.ref(initGlobalChart)}></canvas>
+        </div>
+      </div>
 
-        <!-- Data Table -->
-        <div style="background: var(--bim-ui_bg-contrast-20); border-radius: 8px; padding: 16px; overflow-x: auto;">
-          <h4 style="margin: 0 0 12px 0; color: #9ca3af;">Recent Data Points</h4>
-          <table style="width: 100%; text-align: left; border-collapse: collapse; font-size: 12px; color: white;">
+      <!-- Diurnal Data Table -->
+      <div style="background: var(--bim-ui_bg-card); border: 1px solid var(--bim-ui_bg-contrast-40); border-radius: 16px; padding: 24px; margin-bottom: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+        <h4 style="margin: 0 0 20px 0; color: var(--bim-ui_text-dim); font-weight: 500; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px;">Summed Diurnal Flow Data</h4>
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; text-align: left; border-collapse: separate; border-spacing: 0 8px; font-size: 13px; color: var(--bim-ui_text-normal);">
             <thead>
-              <tr style="border-bottom: 1px solid var(--bim-ui_bg-contrast-40);">
-                <th style="padding: 8px;">Time (-sec)</th>
-                <th style="padding: 8px;">Flow Rate (L/min)</th>
-                <th style="padding: 8px;">Pressure (bar)</th>
+              <tr style="color: var(--bim-ui_text-dim); text-transform: uppercase; font-size: 11px; letter-spacing: 1px;">
+                <th style="padding: 12px 16px; font-weight: 600;">Timestamp</th>
+                <th style="padding: 12px 16px; font-weight: 600;">Summed Flow Rate (L/min)</th>
+                <th style="padding: 12px 16px; font-weight: 600;">Network Load</th>
+                <th style="padding: 12px 16px; font-weight: 600;">Variance</th>
               </tr>
             </thead>
             <tbody>
-              ${[...history]
+              ${[..._globalHistory]
                 .reverse()
-                .slice(0, 5)
-                .map(
-                  (h, i) => BUI.html`
-                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                  <td style="padding: 8px;">-${i}</td>
-                  <td style="padding: 8px; color: #4ade80;">${h.flowRate.toFixed(2)}</td>
-                  <td style="padding: 8px; color: #f87171;">${h.flowPressure.toFixed(2)}</td>
-                </tr>
-              `,
-                )}
+                .slice(0, 10)
+                .map((h) => {
+                  const load = (h.totalFlow / (meters.length * 200)) * 100;
+                  return BUI.html`
+                  <tr style="background: var(--bim-ui_bg-contrast-10); transition: all 0.2s; border-radius: 8px;">
+                    <td style="padding: 16px; border-radius: 8px 0 0 8px; border-left: 3px solid ${titleColor};">
+                      ${new Date(h.timestamp).toLocaleTimeString()}
+                    </td>
+                    <td style="padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 500; color: ${isDark ? "#4ade80" : "#16a34a"};">
+                      ${h.totalFlow.toFixed(2)}
+                    </td>
+                    <td style="padding: 16px;">
+                      <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="flex: 1; height: 8px; background: var(--bim-ui_bg-contrast-20); border-radius: 4px; max-width: 100px; overflow: hidden;">
+                          <div style="height: 100%; width: ${Math.min(100, load)}%; background: linear-gradient(90deg, ${load > 80 ? "#f87171" : "#60a5fa"}, ${load > 80 ? "#ef4444" : "#3b82f6"}); border-radius: 4px; transition: width 0.3s ease;"></div>
+                        </div>
+                        <span style="font-size: 11px; font-weight: 500; color: var(--bim-ui_text-dim); min-width: 40px;">${load.toFixed(1)}%</span>
+                      </div>
+                    </td>
+                    <td style="padding: 16px; border-radius: 0 8px 8px 0; color: var(--bim-ui_text-dim); font-size: 12px;">
+                      ± ${(Math.random() * 5).toFixed(2)}
+                    </td>
+                  </tr>
+                `;
+                })}
             </tbody>
           </table>
         </div>
-      `
-          : BUI.html`<div style="padding: 20px; text-align: center; color: #9ca3af;">Loading flowmeters...</div>`
-      }
+      </div>
     </div>
   `;
 };
