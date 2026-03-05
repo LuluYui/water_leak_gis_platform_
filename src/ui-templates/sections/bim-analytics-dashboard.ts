@@ -34,82 +34,137 @@ function calculateLeakIndicators(history: HistoricalDataPoint[]) {
 function createChart(
   history: HistoricalDataPoint[],
   type: "flowRate" | "flowPressure",
-): HTMLCanvasElement {
+): HTMLDivElement {
+  const container = document.createElement("div");
+  container.style.position = "relative";
+  container.style.width = "100%";
+  container.style.height = "180px";
+
   const canvas = document.createElement("canvas");
-  canvas.width = 500;
-  canvas.height = 150;
-  canvas.style.maxWidth = "100%";
-  canvas.style.height = "auto";
+  canvas.width = 800;
+  canvas.height = 300;
+  canvas.style.width = "100%";
+  canvas.style.height = "100%";
+  container.appendChild(canvas);
+
+  const tooltip = document.createElement("div");
+  tooltip.style.cssText = `
+    position: absolute;
+    display: none;
+    background: rgba(0,0,0,0.9);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 10;
+    border: 1px solid #555;
+  `;
+  container.appendChild(tooltip);
+
   const ctx = canvas.getContext("2d")!;
 
-  if (history.length < 2) {
-    ctx.fillStyle = "#6b7280";
-    ctx.font = "12px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText(
-      "Insufficient data for chart",
-      canvas.width / 2,
-      canvas.height / 2,
-    );
-    return canvas;
-  }
+  const draw = () => {
+    const width = canvas.width;
+    const height = canvas.height;
 
-  const values = history.map((h) => h[type]);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min || 1;
+    if (history.length < 2) {
+      ctx.fillStyle = "#6b7280";
+      ctx.font = "bold 16px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("Insufficient data for chart", width / 2, height / 2);
+      return;
+    }
 
-  const padding = 5;
-  const chartWidth = canvas.width - padding * 2;
-  const chartHeight = canvas.height - padding * 2;
+    const values = history.map((h) => h[type]);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = max - min || 1;
 
-  // Background
-  ctx.fillStyle = "transparent";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const padding = 25;
+    const chartWidth = width - padding * 2;
+    const chartHeight = height - padding * 2;
 
-  // Grid lines
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
-  ctx.lineWidth = 1;
-  for (let i = 0; i <= 4; i++) {
-    const y = padding + (chartHeight / 4) * i;
+    ctx.fillStyle = "transparent";
+    ctx.fillRect(0, 0, width, height);
+
+    // Grid
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      const y = padding + (chartHeight / 4) * i;
+      ctx.beginPath();
+      ctx.moveTo(padding, y);
+      ctx.lineTo(width - padding, y);
+      ctx.stroke();
+    }
+
+    // Line
+    const color = type === "flowRate" ? "#4ade80" : "#f87171";
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(padding, y);
-    ctx.lineTo(canvas.width - padding, y);
+
+    for (let i = 0; i < values.length; i++) {
+      const x = padding + (i / (values.length - 1)) * chartWidth;
+      const y =
+        padding + chartHeight - ((values[i] - min) / range) * chartHeight;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
     ctx.stroke();
-  }
 
-  // Line
-  const color = type === "flowRate" ? "#4ade80" : "#f87171";
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
+    // Fill
+    ctx.lineTo(padding + chartWidth, padding + chartHeight);
+    ctx.lineTo(padding, padding + chartHeight);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.15;
+    ctx.fill();
+    ctx.globalAlpha = 1;
 
-  for (let i = 0; i < values.length; i++) {
-    const x = padding + (i / (values.length - 1)) * chartWidth;
-    const y = padding + chartHeight - ((values[i] - min) / range) * chartHeight;
+    // Labels
+    ctx.fillStyle = "#9ca3af";
+    ctx.font = "bold 14px sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText(max.toFixed(1), padding, padding + 15);
+    ctx.fillText(min.toFixed(1), padding, height - 10);
+  };
 
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  }
-  ctx.stroke();
+  // Add hover interaction
+  canvas.onmousemove = (e) => {
+    if (history.length < 2) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const padding = 25;
+    const chartWidth = canvas.width - padding * 2;
 
-  // Fill
-  ctx.lineTo(padding + chartWidth, padding + chartHeight);
-  ctx.lineTo(padding, padding + chartHeight);
-  ctx.closePath();
-  ctx.fillStyle = color;
-  ctx.globalAlpha = 0.2;
-  ctx.fill();
-  ctx.globalAlpha = 1;
+    const index = Math.round(
+      ((x - padding) / chartWidth) * (history.length - 1),
+    );
+    if (index >= 0 && index < history.length) {
+      const point = history[index];
 
-  // Labels
-  ctx.fillStyle = "#9ca3af";
-  ctx.font = "10px sans-serif";
-  ctx.textAlign = "left";
-  ctx.fillText(max.toFixed(1), padding, padding + 10);
-  ctx.fillText(min.toFixed(1), padding, canvas.height - 4);
+      tooltip.style.display = "block";
+      tooltip.style.left = `${e.clientX - rect.left + 10}px`;
+      tooltip.style.top = `${e.clientY - rect.top - 30}px`;
 
-  return canvas;
+      const time = new Date(point.timestamp).toLocaleTimeString();
+      const value =
+        type === "flowRate"
+          ? point.flowRate.toFixed(1)
+          : point.flowPressure.toFixed(2);
+      const unit = type === "flowRate" ? "L/min" : "bar";
+      tooltip.innerHTML = `<strong>${time}</strong><br/>${value} ${unit}`;
+    }
+  };
+
+  canvas.onmouseout = () => {
+    tooltip.style.display = "none";
+  };
+
+  draw();
+  return container;
 }
 
 export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
@@ -131,6 +186,7 @@ export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
             // localIds is a Set, get the first value
             const firstLocalId = Array.from(localIds)[0];
             const targetId = `${modelId}-${firstLocalId}`;
+
             // Check if this ID exists in our meters
             const meterExists = _iotManager
               .getAllFlowMeters()
@@ -188,11 +244,19 @@ export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
     <bim-panel>
       <bim-panel-section label="Water Leak Analytics (Native UI)" icon=${appIcons.CHART}>
         
-        <bim-dropdown @change=${onMeterChange}>
+        <!-- Active Meter Indicator -->
+        <div style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); border-radius: 8px; padding: 12px; margin-bottom: 12px; color: white; text-align: center; border: 1px solid #60a5fa;">
+          <div style="font-size: 11px; opacity: 0.8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Active Flow Meter</div>
+          <div style="font-size: 18px; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">
+            ${selectedMeter ? selectedMeter.name : "No Selection"}
+          </div>
+        </div>
+
+        <bim-dropdown @change=${onMeterChange} style="margin-bottom: 8px;">
           <bim-option label="Select Flowmeter" value="" disabled></bim-option>
           ${meters.map(
             (m: any) => BUI.html`
-            <bim-option label="${m.name} (${m.id})" value="${m.id}" ?checked=${m.id === _selectedMeterId}></bim-option>
+            <bim-option label="${m.name}" value="${m.id}" ?checked=${m.id === _selectedMeterId}></bim-option>
           `,
           )}
         </bim-dropdown>
@@ -205,46 +269,46 @@ export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
         selectedMeter
           ? BUI.html`
         <bim-panel-section label="${selectedMeter.name} Analysis" icon=${appIcons.TASK}>
-          
-          <div style="padding: 10px; display: flex; justify-content: space-between; align-items: center;">
-            <span style="color: var(--bim-ui_text-normal); font-size: 14px;">Analysis Status</span>
+         
+         <div style="padding: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: var(--bim-ui_text-normal); font-size: 16px; font-weight: 600;">Analysis Status</span>
             ${
               analytics.isLeakLikely
-                ? BUI.html`<bim-label style="color: #f87171; font-weight: bold;">⚠️ Alert</bim-label>`
-                : BUI.html`<bim-label style="color: #4ade80; font-weight: bold;">✅ Healthy</bim-label>`
+                ? BUI.html`<bim-label style="color: #f87171; font-weight: bold; font-size: 16px;">⚠️ LEAK DETECTED</bim-label>`
+                : BUI.html`<bim-label style="color: #4ade80; font-weight: bold; font-size: 16px;">✅ NORMAL</bim-label>`
             }
-          </div>
+        </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 10px 10px;">
-            <div style="background: var(--bim-ui_bg-contrast-20); padding: 10px; border-radius: 4px; text-align: center;">
-              <div style="font-size: 12px; color: var(--bim-ui_text-dim);">Min Night Flow</div>
-              <div style="font-size: 16px; font-weight: bold; color: ${analytics.mnf > analytics.avg * 0.7 ? "#f87171" : "#60a5fa"};">
-                ${analytics.mnf.toFixed(1)} <span style="font-size: 10px;">L/min</span>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 10px 12px;">
+            <div style="background: var(--bim-ui_bg-contrast-20); padding: 16px; border-radius: 8px; text-align: center; border: 1px solid var(--bim-ui_bg-contrast-40);">
+              <div style="font-size: 14px; color: var(--bim-ui_text-dim); font-weight: 600; margin-bottom: 8px;">Min Night Flow</div>
+              <div style="font-size: 24px; font-weight: bold; color: ${analytics.mnf > analytics.avg * 0.7 ? "#f87171" : "#60a5fa"};">
+                ${analytics.mnf.toFixed(1)} <span style="font-size: 12px;">L/min</span>
               </div>
             </div>
-            <div style="background: var(--bim-ui_bg-contrast-20); padding: 10px; border-radius: 4px; text-align: center;">
-              <div style="font-size: 12px; color: var(--bim-ui_text-dim);">Avg Flow</div>
-              <div style="font-size: 16px; font-weight: bold; color: var(--bim-ui_text-normal);">
-                ${analytics.avg.toFixed(1)} <span style="font-size: 10px;">L/min</span>
+            <div style="background: var(--bim-ui_bg-contrast-20); padding: 16px; border-radius: 8px; text-align: center; border: 1px solid var(--bim-ui_bg-contrast-40);">
+              <div style="font-size: 14px; color: var(--bim-ui_text-dim); font-weight: 600; margin-bottom: 8px;">Avg Flow</div>
+              <div style="font-size: 24px; font-weight: bold; color: var(--bim-ui_text-normal);">
+                ${analytics.avg.toFixed(1)} <span style="font-size: 12px;">L/min</span>
               </div>
             </div>
-          </div>
+        </div>
 
-          <div style="padding: 0 10px 10px;">
-            <div style="font-size: 12px; color: var(--bim-ui_text-dim); margin-bottom: 5px;">Flow Rate (L/min)</div>
-            <div style="background: var(--bim-ui_bg-contrast-20); border-radius: 4px; padding: 5px; display: flex; justify-content: center;">
+        <div style="padding: 0 10px 10px;">
+            <div style="font-size: 14px; color: var(--bim-ui_text-dim); margin-bottom: 8px; font-weight: 600;">Flow Rate (L/min)</div>
+            <div style="background: var(--bim-ui_bg-contrast-20); border-radius: 8px; padding: 8px;">
               ${createChart(history, "flowRate")}
             </div>
-          </div>
+        </div>
 
-          <div style="padding: 0 10px 10px;">
-            <div style="font-size: 12px; color: var(--bim-ui_text-dim); margin-bottom: 5px;">Pressure (bar)</div>
-            <div style="background: var(--bim-ui_bg-contrast-20); border-radius: 4px; padding: 5px; display: flex; justify-content: center;">
+        <div style="padding: 0 10px 10px;">
+            <div style="font-size: 14px; color: var(--bim-ui_text-dim); margin-bottom: 8px; font-weight: 600;">Pressure (bar)</div>
+            <div style="background: var(--bim-ui_bg-contrast-20); border-radius: 8px; padding: 8px;">
               ${createChart(history, "flowPressure")}
             </div>
-          </div>
+        </div>
 
-        </bim-panel-section>
+      </bim-panel-section>
 
         <bim-panel-section label="Recent Data Points" icon="solar:history-bold">
               <div style="padding: 0 10px 10px;
