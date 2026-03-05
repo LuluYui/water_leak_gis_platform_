@@ -16,6 +16,7 @@ export interface BimAnalyticsManagerState {
 let _iotManager: LiveIoTManager;
 let _selectedMeterId: string | null = null;
 let _refreshKey = 0;
+let _components: OBC.Components | null = null;
 
 function calculateLeakIndicators(history: HistoricalDataPoint[]) {
   if (history.length === 0)
@@ -38,13 +39,15 @@ function createChart(
   const container = document.createElement("div");
   container.style.position = "relative";
   container.style.width = "100%";
-  container.style.height = "180px";
+  container.style.height = "200px";
+  container.style.overflow = "hidden";
 
   const canvas = document.createElement("canvas");
-  canvas.width = 800;
+  canvas.width = 600;
   canvas.height = 300;
   canvas.style.width = "100%";
   canvas.style.height = "100%";
+  canvas.style.objectFit = "fill";
   container.appendChild(canvas);
 
   const tooltip = document.createElement("div");
@@ -171,6 +174,7 @@ export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
   BimAnalyticsManagerState
 > = (state, update) => {
   _iotManager = state.iotManager;
+  _components = state.components || null;
 
   // Digital Twin: Setup Highlighter Listener for Auto-Selection
   if (state.components) {
@@ -221,6 +225,36 @@ export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
     const dropdown = e.target as BUI.Dropdown;
     _selectedMeterId = dropdown.value[0] as string;
     _refreshKey++;
+
+    // Digital Twin Reverse: Highlight element in viewport
+    if (_selectedMeterId && _components) {
+      const parts = _selectedMeterId.split("-");
+      const modelId = parts.slice(0, -1).join("-"); // Everything except last part
+      const localId = parseInt(parts[parts.length - 1]);
+
+      if (!isNaN(localId)) {
+        (async () => {
+          try {
+            const highlighter = _components!.get(OBF.Highlighter);
+            const fragments = _components!.get(OBC.FragmentsManager);
+            const model = fragments.list.get(modelId);
+
+            if (model && highlighter) {
+              // Use highlightByID with 'select' style
+              await highlighter.highlightByID(
+                "select",
+                { [modelId]: new Set([localId]) },
+                false,
+                false,
+              );
+            }
+          } catch (err) {
+            console.warn("Failed to highlight element:", err);
+          }
+        })();
+      }
+    }
+
     update();
   };
 
@@ -244,15 +278,15 @@ export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
     <bim-panel>
       <bim-panel-section label="Water Leak Analytics (Native UI)" icon=${appIcons.CHART}>
         
-        <!-- Active Meter Indicator -->
-        <div style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); border-radius: 8px; padding: 12px; margin-bottom: 12px; color: white; text-align: center; border: 1px solid #60a5fa;">
+        <!-- Active Meter Indicator - Always Visible -->
+        <div style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); border-radius: 8px; padding: 12px; margin-bottom: 12px; color: white; text-align: center; border: 1px solid #60a5fa; flex-shrink: 0;">
           <div style="font-size: 11px; opacity: 0.8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Active Flow Meter</div>
           <div style="font-size: 16px; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">
             ${selectedMeter ? `${selectedMeter.name} (${selectedMeter.id})` : "No Selection"}
           </div>
         </div>
 
-        <bim-dropdown @change=${onMeterChange} style="margin-bottom: 8px;">
+        <bim-dropdown @change=${onMeterChange} style="margin-bottom: 8px; flex-shrink: 0;">
           <bim-option label="Select Flowmeter" value="" disabled></bim-option>
           ${meters.map(
             (m: any) => BUI.html`
@@ -261,7 +295,7 @@ export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
           )}
         </bim-dropdown>
 
-        <bim-button label="Refresh Data" icon="mdi:refresh" @click=${() => update()}></bim-button>
+        <bim-button label="Refresh Data" icon="mdi:refresh" @click=${() => update()} style="flex-shrink: 0;"></bim-button>
 
       </bim-panel-section>
 
@@ -294,17 +328,19 @@ export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
             </div>
         </div>
 
-        <div style="padding: 0 10px 10px;">
-            <div style="font-size: 14px; color: var(--bim-ui_text-dim); margin-bottom: 8px; font-weight: 600;">Flow Rate (L/min)</div>
-            <div style="background: var(--bim-ui_bg-contrast-20); border-radius: 8px; padding: 8px;">
-              ${createChart(history, "flowRate")}
+        <!-- Charts in same row -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 10px 10px;">
+            <div>
+              <div style="font-size: 14px; color: var(--bim-ui_text-dim); margin-bottom: 8px; font-weight: 600;">Flow Rate (L/min)</div>
+              <div style="background: var(--bim-ui_bg-contrast-20); border-radius: 8px; padding: 8px; min-height: 200px;">
+                ${createChart(history, "flowRate")}
+              </div>
             </div>
-        </div>
-
-        <div style="padding: 0 10px 10px;">
-            <div style="font-size: 14px; color: var(--bim-ui_text-dim); margin-bottom: 8px; font-weight: 600;">Pressure (bar)</div>
-            <div style="background: var(--bim-ui_bg-contrast-20); border-radius: 8px; padding: 8px;">
-              ${createChart(history, "flowPressure")}
+            <div>
+              <div style="font-size: 14px; color: var(--bim-ui_text-dim); margin-bottom: 8px; font-weight: 600;">Pressure (bar)</div>
+              <div style="background: var(--bim-ui_bg-contrast-20); border-radius: 8px; padding: 8px; min-height: 200px;">
+                ${createChart(history, "flowPressure")}
+              </div>
             </div>
         </div>
 
