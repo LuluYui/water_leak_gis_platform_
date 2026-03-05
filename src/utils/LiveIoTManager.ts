@@ -1,6 +1,7 @@
 import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
 import * as THREE from "three";
+import { defaultLeakConfig, LeakPointConfig } from "../config/leakConfig";
 
 export interface HistoricalDataPoint {
   timestamp: number;
@@ -19,6 +20,7 @@ export interface LiveFlowMeter {
   temperature?: number;
   timestamp: Date;
   isOnline: boolean;
+  baseFlowRate?: number; // Stored base for diurnal pattern
 }
 
 export interface FlowMeterMarkerData {
@@ -26,6 +28,7 @@ export interface FlowMeterMarkerData {
   position: THREE.Vector3;
   line?: THREE.Line;
   markerId_internal?: string | null;
+  leakPoints?: LeakPointConfig[]; // Associated leak points
 }
 
 const MARKER_COLOR = "#4a90d9";
@@ -77,6 +80,9 @@ export class LiveIoTManager extends SimpleEventEmitter {
   private allClusterElements: HTMLElement[] = [];
   private autoClusterOriginallyEnabled: boolean = true;
 
+  private leakConfig: LeakPointConfig[] = defaultLeakConfig;
+  private meterLeakMap: Map<string, LeakPointConfig[]> = new Map();
+
   public setUpdateInterval(ms: number): void {
     this.updateIntervalMs = ms;
     if (this.running) {
@@ -91,6 +97,27 @@ export class LiveIoTManager extends SimpleEventEmitter {
 
   public getUpdateInterval(): number {
     return this.updateIntervalMs;
+  }
+
+  public setLeakActive(leakId: string, isActive: boolean): void {
+    const leak = this.leakConfig.find((l) => l.id === leakId);
+    if (leak) {
+      leak.isActive = isActive;
+      console.log(
+        `Leak ${leak.name} is now ${isActive ? "ACTIVE" : "INACTIVE"}`,
+      );
+    }
+  }
+
+  public getLeakConfig(): LeakPointConfig[] {
+    return this.leakConfig;
+  }
+
+  public toggleLeak(leakId: string): void {
+    const leak = this.leakConfig.find((l) => l.id === leakId);
+    if (leak) {
+      this.setLeakActive(leakId, !leak.isActive);
+    }
   }
 
   initialize(
@@ -117,11 +144,19 @@ export class LiveIoTManager extends SimpleEventEmitter {
     }[],
   ): void {
     this.flowMeters.clear();
+    this.meterLeakMap.clear();
 
     for (const ifcMeter of ifcMeters) {
       const id = `${ifcMeter.modelId}-${ifcMeter.localId}`;
-      const baseFlowRate = 50 + Math.random() * 150;
-      const basePressure = 2 + Math.random() * 4;
+
+      // Assign base flow rate based on time of day pattern (daytime peak)
+      const hour = new Date().getHours();
+      const isDaytime = hour >= 6 && hour <= 22;
+      const baseFlowRate = isDaytime
+        ? 50 + Math.random() * 100 // Day: 50-150 L/min
+        : 5 + Math.random() * 10; // Night: 5-15 L/min (MNF)
+
+      const basePressure = 3.5 + Math.random() * 1.5;
 
       const flowMeter: LiveFlowMeter = {
         id,
@@ -134,7 +169,25 @@ export class LiveIoTManager extends SimpleEventEmitter {
         temperature: 15 + Math.random() * 10,
         timestamp: new Date(),
         isOnline: true,
+        baseFlowRate: baseFlowRate,
       };
+
+      // Check if this meter is associated with any leak points
+      const associatedLeaks: LeakPointConfig[] = [];
+      for (const leak of this.leakConfig) {
+        if (leak.isActive) {
+          for (const elemId of leak.elementIds) {
+            if (
+              ifcMeter.name.includes(elemId) ||
+              elemId.includes(ifcMeter.name)
+            ) {
+              associatedLeaks.push(leak);
+              break;
+            }
+          }
+        }
+      }
+      this.meterLeakMap.set(id, associatedLeaks);
 
       this.flowMeters.set(id, flowMeter);
     }
@@ -347,17 +400,54 @@ export class LiveIoTManager extends SimpleEventEmitter {
   private updateSimulationData(): void {
     if (!this.world) return;
 
+    const now = new Date();
+    const hour = now.getHours() + now.getMinutes() / 60;
+
+    // Diurnal factor: peaks at 10am-12pm and 6pm-9pm, lowest at 3am-5am
+    let diurnalFactor = 1;
+    if (hour >= 3 && hour <= 5)
+      diurnalFactor = 0.2; // Night - very low
+    else if (hour >= 6 && hour <= 9)
+      diurnalFactor = 0.8; // Morning ramp up
+    else if (hour >= 10 && hour <= 12)
+      diurnalFactor = 1.2; // Peak usage
+    else if (hour >= 13 && hour <= 17)
+      diurnalFactor = 0.9; // Afternoon
+    else if (hour >= 18 && hour <= 21)
+      diurnalFactor = 1.1; // Evening peak
+    else if (hour >= 22 || hour < 3) diurnalFactor = 0.3; // Night drop
+
     for (const [id, meter] of this.flowMeters) {
-      meter.flowRate = Math.max(
-        0,
-        meter.flowRate * (0.95 + Math.random() * 0.1) +
-          (Math.random() - 0.5) * 5,
-      );
-      meter.flowPressure = Math.max(
-        0,
-        meter.flowPressure + (Math.random() - 0.5) * 0.1,
-      );
-      meter.timestamp = new Date();
+      // Get leak points for this meter
+      const leaks = this.meterLeakMap.get(id) || [];
+      let totalLeakFlow = 0;
+      let totalPressureDrop = 0;
+
+      for (const leak of leaks) {
+        if (leak.isActive) {
+          totalLeakFlow += leak.leakRate * (0.8 + Math.random() * 0.4); // Variable leak
+          totalPressureDrop += leak.pressureDrop;
+        }
+      }
+
+      // Base flow varies with time of day + random noise + leak
+      const baseTarget = meter.baseFlowRate || 50;
+      const targetFlow = baseTarget * diurnalFactor + totalLeakFlow;
+
+      // Smooth transition to target
+      const flowChange =
+        (targetFlow - meter.flowRate) * 0.1 + (Math.random() - 0.5) * 2;
+      meter.flowRate = Math.max(0, meter.flowRate + flowChange);
+
+      // Pressure: Base 4 bar, drops with high flow and leaks
+      const flowPressureEffect = (meter.flowRate / 200) * 0.5; // Higher flow = slightly lower pressure
+      const targetPressure = 4.0 - flowPressureEffect - totalPressureDrop;
+      const pressureChange =
+        (targetPressure - meter.flowPressure) * 0.1 +
+        (Math.random() - 0.5) * 0.05;
+      meter.flowPressure = Math.max(0, meter.flowPressure + pressureChange);
+
+      meter.timestamp = now;
 
       if (!this.historicalData.has(id)) this.historicalData.set(id, []);
       const history = this.historicalData.get(id)!;

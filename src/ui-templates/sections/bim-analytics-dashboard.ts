@@ -32,7 +32,7 @@ function createChart(
   type: "flowRate" | "flowPressure",
 ): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
-  canvas.width = 300;
+  canvas.width = 500;
   canvas.height = 150;
   canvas.style.maxWidth = "100%";
   canvas.style.height = "auto";
@@ -55,7 +55,7 @@ function createChart(
   const max = Math.max(...values);
   const range = max - min || 1;
 
-  const padding = 15;
+  const padding = 5;
   const chartWidth = canvas.width - padding * 2;
   const chartHeight = canvas.height - padding * 2;
 
@@ -93,10 +93,7 @@ function createChart(
   ctx.lineTo(padding + chartWidth, padding + chartHeight);
   ctx.lineTo(padding, padding + chartHeight);
   ctx.closePath();
-  ctx.fillStyle = color
-    .replace(")", ", 0.1)")
-    .replace("rgb", "rgba")
-    .replace("#", "rgba(");
+  ctx.fillStyle = color;
   ctx.globalAlpha = 0.2;
   ctx.fill();
   ctx.globalAlpha = 1;
@@ -105,8 +102,8 @@ function createChart(
   ctx.fillStyle = "#9ca3af";
   ctx.font = "10px sans-serif";
   ctx.textAlign = "left";
-  ctx.fillText(max.toFixed(1), 2, padding + 8);
-  ctx.fillText(min.toFixed(1), 2, canvas.height - 4);
+  ctx.fillText(max.toFixed(1), padding, padding + 10);
+  ctx.fillText(min.toFixed(1), padding, canvas.height - 4);
 
   return canvas;
 }
