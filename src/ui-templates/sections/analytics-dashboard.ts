@@ -59,6 +59,13 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
 
   const globalAnalytics = calculateGlobalAnalytics(meters, _iotManager);
 
+  // Auto-refresh every 5 seconds when simulation is running
+  if (_simulationStarted) {
+    setInterval(() => {
+      update();
+    }, 5000);
+  }
+
   const isDark = document.documentElement.classList.contains("bim-ui-dark");
   const titleColor = isDark ? "#4ade80" : "#6528d7";
 
@@ -140,19 +147,6 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <h2 style="margin: 0; color: ${titleColor}; font-weight: 300; letter-spacing: 2px; text-transform: uppercase;">DMA/PMA Analytics</h2>
         <div style="display: flex; align-items: center; gap: 12px;">
-           <span style="font-size: 12px; color: var(--bim-ui_text-dim);">Real-time SCADA Feed</span>
-           ${
-             !_simulationStarted
-               ? BUI.html`
-           <bim-button label="Start Live Sim" icon="mdi:play" @click=${() => {
-             _simulationStarted = true;
-             _iotManager.setUpdateInterval(5000);
-             _iotManager.startSimulation();
-             update();
-           }} style="background: #4ade80; color: #000;"></bim-button>
-           `
-               : ""
-           }
            <bim-button label="Refresh" icon="mdi:refresh" @click=${() => update()}></bim-button>
         </div>
       </div>
@@ -161,9 +155,6 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
         !_simulationStarted
           ? BUI.html`
       <!-- Hint for users -->
-      <div style="font-size: 12px; color: var(--bim-ui_text-dim); background: rgba(59, 130, 246, 0.1); padding: 12px; border-radius: 8px; border: 1px dashed #60a5fa;">
-        💡 <strong>Tip:</strong> Click "Start Live Sim" to begin the simulation. Watch the global flow trends update in real-time and observe the diurnal patterns in the charts below.
-      </div>
       `
           : ""
       }
@@ -205,16 +196,17 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
         ${
           !_simulationStarted
             ? BUI.html`
-        <div style="height: 350px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bim-ui_bg-contrast-10); border-radius: 8px; border: 2px dashed var(--bim-ui_accent-base);">
-          <div style="font-size: 16px; color: var(--bim-ui_text-normal); margin-bottom: 16px; text-align: center;">
-            Start the simulation to see real-time data
-          </div>
+                  <div style="font-size: 12px; color: var(--bim-ui_text-dim); background: rgba(59, 130, 246, 0.1); padding: 12px; border-radius: 8px; border: 1px dashed #60a5fa;">
+        💡 <strong>Tip:</strong> Click "Start Live Sim" to begin the simulation. Watch the global flow trends update in real-time and observe the diurnal patterns in the charts below.
+      </div>
+
+        <div style="height: 350px;  flex-direction: column; align-items: center; justify-content: center; background: var(--bim-ui_bg-contrast-10); border-radius: 8px; border: 2px dashed var(--bim-ui_accent-base);">
           <bim-button label="Start Live Simulation (5s)" icon="mdi:play" @click=${() => {
             _simulationStarted = true;
             _iotManager.setUpdateInterval(5000);
             _iotManager.startSimulation();
             update();
-          }} style="background: #4ade80; color: #000; font-size: 14px; padding: 10px 20px;"></bim-button>
+          }} style="font-size: 14px; padding: 10px 20px;"></bim-button>
         </div>
         `
             : BUI.html`

@@ -177,6 +177,13 @@ export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
   _iotManager = state.iotManager;
   _components = state.components || null;
 
+  // Auto-refresh every 5 seconds when simulation is running
+  if (_simulationStarted) {
+    setInterval(() => {
+      update();
+    }, 5000);
+  }
+
   // Digital Twin: Setup Highlighter Listener for Auto-Selection
   if (state.components) {
     const highlighter = state.components.get(OBF.Highlighter);
