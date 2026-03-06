@@ -17,6 +17,7 @@ let _iotManager: LiveIoTManager;
 let _selectedMeterId: string | null = null;
 let _refreshKey = 0;
 let _components: OBC.Components | null = null;
+let _simulationStarted = false;
 
 function calculateLeakIndicators(history: HistoricalDataPoint[]) {
   if (history.length === 0)
@@ -295,18 +296,7 @@ export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
           )}
         </bim-dropdown>
 
-        <div style="display: flex; gap: 8px; flex-shrink: 0; margin-bottom: 8px;">
-          <bim-button label="Start Live Simulation" icon="mdi:play" @click=${() => {
-            _iotManager.setUpdateInterval(5000);
-            _iotManager.startSimulation();
-            update();
-          }} style="background: #4ade80; color: #000;"></bim-button>
-          <bim-button label="Refresh" icon="mdi:refresh" @click=${() => update()}></bim-button>
-        </div>
-        
-        <div style="font-size: 11px; color: var(--bim-ui_text-dim); background: rgba(59, 130, 246, 0.1); padding: 8px; border-radius: 4px; border: 1px dashed #60a5fa; margin-bottom: 8px;">
-          💡 Tip: Click "Start Live Simulation" to see real-time data flow. Use dropdown or click 3D elements to switch meters.
-        </div>
+        <bim-button label="Refresh" icon="mdi:refresh" @click=${() => update()} style="flex-shrink: 0;"></bim-button>
 
       </bim-panel-section>
 
@@ -364,7 +354,29 @@ export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
           </div>
         </bim-panel-section>
       `
-          : BUI.html`<bim-panel-section label="Loading..." icon=${appIcons.SEARCH}></bim-panel-section>`
+          : BUI.html`
+          <bim-panel-section label="Loading..." icon=${appIcons.SEARCH}>
+            <div style="text-align: center; padding: 20px;">
+              <div style="font-size: 14px; color: var(--bim-ui_text-dim); margin-bottom: 16px;">
+                ${_simulationStarted ? "Simulation Running..." : "Ready to start simulation"}
+              </div>
+              ${
+                !_simulationStarted
+                  ? BUI.html`
+                <bim-button label="Start Live Simulation" icon="mdi:play" @click=${() => {
+                  _iotManager.setUpdateInterval(5000);
+                  _iotManager.startSimulation();
+                  _simulationStarted = true;
+                  update();
+                }} style="background: #4ade80; color: #000; font-size: 16px; padding: 12px 24px;"></bim-button>
+                <div style="font-size: 12px; color: var(--bim-ui_text-dim); margin-top: 16px; background: rgba(59, 130, 246, 0.1); padding: 12px; border-radius: 8px; border: 1px dashed #60a5fa;">
+                  💡 Tip: Click the button above to start the simulation. You can then select flow meters from the dropdown or click on 3D elements to view details.
+                </div>
+              `
+                  : BUI.html`<div style="font-size: 14px; color: #4ade80;">✅ Simulation Active - Data updating every 5s</div>`
+              }
+            </div>
+          </bim-panel-section>`
       }
     </bim-panel>
   `;
