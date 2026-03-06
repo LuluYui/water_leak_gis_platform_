@@ -140,8 +140,18 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
         <h2 style="margin: 0; color: ${titleColor}; font-weight: 300; letter-spacing: 2px; text-transform: uppercase;">DMA/PMA Analytics</h2>
         <div style="display: flex; align-items: center; gap: 12px;">
            <span style="font-size: 12px; color: var(--bim-ui_text-dim);">Real-time SCADA Feed</span>
+           <bim-button label="Start Live Sim (5s)" icon="mdi:play" @click=${() => {
+             _iotManager.setUpdateInterval(5000);
+             _iotManager.startSimulation();
+             update();
+           }} style="background: #4ade80; color: #000;"></bim-button>
            <bim-button label="Refresh" icon="mdi:refresh" @click=${() => update()}></bim-button>
         </div>
+      </div>
+
+      <!-- Hint for users -->
+      <div style="font-size: 12px; color: var(--bim-ui_text-dim); background: rgba(59, 130, 246, 0.1); padding: 12px; border-radius: 8px; border: 1px dashed #60a5fa;">
+        💡 <strong>Tip:</strong> Click "Start Live Sim" to begin the simulation. Watch the global flow trends update in real-time and observe the diurnal patterns in the charts below.
       </div>
       
       <!-- Global Summary Stats -->

@@ -295,7 +295,18 @@ export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
           )}
         </bim-dropdown>
 
-        <bim-button label="Refresh Data" icon="mdi:refresh" @click=${() => update()} style="flex-shrink: 0;"></bim-button>
+        <div style="display: flex; gap: 8px; flex-shrink: 0; margin-bottom: 8px;">
+          <bim-button label="Start Live Simulation" icon="mdi:play" @click=${() => {
+            _iotManager.setUpdateInterval(5000);
+            _iotManager.startSimulation();
+            update();
+          }} style="background: #4ade80; color: #000;"></bim-button>
+          <bim-button label="Refresh" icon="mdi:refresh" @click=${() => update()}></bim-button>
+        </div>
+        
+        <div style="font-size: 11px; color: var(--bim-ui_text-dim); background: rgba(59, 130, 246, 0.1); padding: 8px; border-radius: 4px; border: 1px dashed #60a5fa; margin-bottom: 8px;">
+          💡 Tip: Click "Start Live Simulation" to see real-time data flow. Use dropdown or click 3D elements to switch meters.
+        </div>
 
       </bim-panel-section>
 
