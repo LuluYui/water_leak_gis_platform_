@@ -9,6 +9,7 @@ export interface AnalyticsManagerState {
 let _iotManager: LiveIoTManager;
 let _charts: { [key: string]: Chart } = {};
 let _globalHistory: { timestamp: number; totalFlow: number }[] = [];
+let _simulationStarted = false;
 
 function calculateGlobalAnalytics(
   meters: LiveFlowMeter[],
@@ -140,19 +141,32 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
         <h2 style="margin: 0; color: ${titleColor}; font-weight: 300; letter-spacing: 2px; text-transform: uppercase;">DMA/PMA Analytics</h2>
         <div style="display: flex; align-items: center; gap: 12px;">
            <span style="font-size: 12px; color: var(--bim-ui_text-dim);">Real-time SCADA Feed</span>
-           <bim-button label="Start Live Sim (5s)" icon="mdi:play" @click=${() => {
+           ${
+             !_simulationStarted
+               ? BUI.html`
+           <bim-button label="Start Live Sim" icon="mdi:play" @click=${() => {
+             _simulationStarted = true;
              _iotManager.setUpdateInterval(5000);
              _iotManager.startSimulation();
              update();
            }} style="background: #4ade80; color: #000;"></bim-button>
+           `
+               : ""
+           }
            <bim-button label="Refresh" icon="mdi:refresh" @click=${() => update()}></bim-button>
         </div>
       </div>
 
+      ${
+        !_simulationStarted
+          ? BUI.html`
       <!-- Hint for users -->
       <div style="font-size: 12px; color: var(--bim-ui_text-dim); background: rgba(59, 130, 246, 0.1); padding: 12px; border-radius: 8px; border: 1px dashed #60a5fa;">
         💡 <strong>Tip:</strong> Click "Start Live Sim" to begin the simulation. Watch the global flow trends update in real-time and observe the diurnal patterns in the charts below.
       </div>
+      `
+          : ""
+      }
       
       <!-- Global Summary Stats -->
       <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
@@ -187,9 +201,28 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
           <h4 style="margin: 0; color: var(--bim-ui_text-dim); font-weight: 500; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px;">Network Diurnal Trend (L/min)</h4>
           <span style="font-size: 11px; color: #60a5fa; background: rgba(96,165,250,0.1); padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(96,165,250,0.2); font-weight: 500;">Global Aggregation</span>
         </div>
+        
+        ${
+          !_simulationStarted
+            ? BUI.html`
+        <div style="height: 350px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bim-ui_bg-contrast-10); border-radius: 8px; border: 2px dashed var(--bim-ui_accent-base);">
+          <div style="font-size: 16px; color: var(--bim-ui_text-normal); margin-bottom: 16px; text-align: center;">
+            Start the simulation to see real-time data
+          </div>
+          <bim-button label="Start Live Simulation (5s)" icon="mdi:play" @click=${() => {
+            _simulationStarted = true;
+            _iotManager.setUpdateInterval(5000);
+            _iotManager.startSimulation();
+            update();
+          }} style="background: #4ade80; color: #000; font-size: 14px; padding: 10px 20px;"></bim-button>
+        </div>
+        `
+            : BUI.html`
         <div style="height: 350px; position: relative;">
           <canvas ${BUI.ref(initGlobalChart)}></canvas>
         </div>
+        `
+        }
       </div>
 
       <!-- Diurnal Data Table -->
