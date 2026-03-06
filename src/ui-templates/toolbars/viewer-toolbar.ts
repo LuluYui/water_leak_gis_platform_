@@ -164,7 +164,7 @@ export const viewerToolbarTemplate: BUI.StatefullComponent<
         ${focusBtn}
         <bim-button tooltip-title=${tooltips.HIDE.TITLE} tooltip-text=${tooltips.HIDE.TEXT} icon=${appIcons.HIDE} label="Hide" @click=${onHide}></bim-button> 
         <bim-button tooltip-title=${tooltips.ISOLATE.TITLE} tooltip-text=${tooltips.ISOLATE.TEXT} icon=${appIcons.ISOLATE} label="Isolate" @click=${onIsolate}></bim-button>
-        <bim-button icon=${appIcons.COLORIZE} label="resize">
+        <bim-button icon=${appIcons.COLORIZE} label="Color">
           <bim-context-menu>
             <div style="display: flex; gap: 0.5rem; width: 10rem;">
               <bim-color-input id=${colorInputId}></bim-color-input>

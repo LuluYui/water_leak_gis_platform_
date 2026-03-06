@@ -364,9 +364,6 @@ export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
           : BUI.html`
           <bim-panel-section label="Loading..." icon=${appIcons.SEARCH}>
             <div style="text-align: center; padding: 20px;">
-              <div style="font-size: 14px; color: var(--bim-ui_text-dim); margin-bottom: 16px;">
-                ${_simulationStarted ? "Simulation Running..." : "Ready to start simulation"}
-              </div>
               ${
                 !_simulationStarted
                   ? BUI.html`
