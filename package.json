@@ -6,7 +6,9 @@
     "dev": "vite --host",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "simulation": "tsx backend/run-simulation.ts"
+    "simulation": "tsx backend/run-simulation.ts",
+    "test": "vitest",
+    "test:run": "vitest run"
   },
   "devDependencies": {
     "@types/node": "^25.3.2",
@@ -21,7 +23,8 @@
     "prettier": "3.3.3",
     "tsx": "^4.21.0",
     "typescript": "5.2.2",
-    "vite": "^7.1.5"
+    "vite": "^7.1.5",
+    "vitest": "^3.1.0"
   },
   "dependencies": {
     "@thatopen/components": "~3.2.0",

@@ -1,8 +1,7 @@
 import * as BUI from "@thatopen/ui";
-import {
-  LiveIoTManager,
-  HistoricalDataPoint,
-} from "../../utils/LiveIoTManager";
+import { LiveIoTManager } from "../../utils/LiveIoTManager";
+import { createSmallChart } from "../../utils/charts/ChartRenderer";
+import { calculateAnalytics } from "../../utils/analytics/AnalyticsCalculator";
 
 interface IoTManagerState {
   iotManager: LiveIoTManager;
@@ -10,121 +9,6 @@ interface IoTManagerState {
 
 let _iotManager: LiveIoTManager;
 let _selectedMeterId: string | null = null;
-
-function createChart(
-  history: HistoricalDataPoint[],
-  type: "flowRate" | "flowPressure",
-): HTMLCanvasElement {
-  const canvas = document.createElement("canvas");
-  canvas.width = 280;
-  canvas.height = 100;
-  const ctx = canvas.getContext("2d")!;
-
-  const isDark = document.documentElement.classList.contains("bim-ui-dark");
-  const bgColor = isDark ? "rgba(0, 0, 0, 0.3)" : "rgba(0, 0, 0, 0.05)";
-  const gridColor = isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.08)";
-  const textColor = isDark ? "#9ca3af" : "#6b7280";
-
-  if (history.length < 2) {
-    ctx.fillStyle = textColor;
-    ctx.font = "10px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("No data yet", canvas.width / 2, canvas.height / 2);
-    return canvas;
-  }
-
-  const values = history.map((h) => h[type]);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min || 1;
-
-  const padding = 10;
-  const chartWidth = canvas.width - padding * 2;
-  const chartHeight = canvas.height - padding * 2;
-
-  // Background
-  ctx.fillStyle = bgColor;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // Grid lines
-  ctx.strokeStyle = gridColor;
-  ctx.lineWidth = 1;
-  for (let i = 0; i <= 4; i++) {
-    const y = padding + (chartHeight / 4) * i;
-    ctx.beginPath();
-    ctx.moveTo(padding, y);
-    ctx.lineTo(canvas.width - padding, y);
-    ctx.stroke();
-  }
-
-  // Line
-  const color = type === "flowRate" ? "#4ade80" : "#f87171";
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-
-  for (let i = 0; i < values.length; i++) {
-    const x = padding + (i / (values.length - 1)) * chartWidth;
-    const y = padding + chartHeight - ((values[i] - min) / range) * chartHeight;
-
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  }
-  ctx.stroke();
-
-  // Fill
-  ctx.lineTo(padding + chartWidth, padding + chartHeight);
-  ctx.lineTo(padding, padding + chartHeight);
-  ctx.closePath();
-  ctx.fillStyle = color
-    .replace(")", ", 0.1)")
-    .replace("rgb", "rgba")
-    .replace("#", "rgba(");
-  ctx.globalAlpha = 0.2;
-  ctx.fill();
-  ctx.globalAlpha = 1;
-
-  // Labels
-  ctx.fillStyle = textColor;
-  ctx.font = "9px sans-serif";
-  ctx.textAlign = "left";
-  ctx.fillText(max.toFixed(0), 2, padding + 8);
-  ctx.fillText(min.toFixed(0), 2, canvas.height - 4);
-
-  return canvas;
-}
-
-function calculateAnalytics(history: HistoricalDataPoint[]): {
-  ma: number;
-  ema: number;
-  min: number;
-  max: number;
-  avg: number;
-} {
-  if (history.length === 0) {
-    return { ma: 0, ema: 0, min: 0, max: 0, avg: 0 };
-  }
-
-  const values = history.map((h) => h.flowRate);
-
-  // Moving Average (last 10)
-  const ma =
-    values.slice(-10).reduce((a, b) => a + b, 0) / Math.min(10, values.length);
-
-  // EMA
-  let ema = values[0];
-  for (let i = 1; i < values.length; i++) {
-    ema = 0.3 * values[i] + 0.7 * ema;
-  }
-
-  return {
-    ma,
-    ema,
-    min: Math.min(...values),
-    max: Math.max(...values),
-    avg: values.reduce((a, b) => a + b, 0) / values.length,
-  };
-}
 
 export const iotDashboardTemplate: BUI.StatefullComponent<IoTManagerState> = (
   state,
@@ -137,7 +21,6 @@ export const iotDashboardTemplate: BUI.StatefullComponent<IoTManagerState> = (
   const isDark = document.documentElement.classList.contains("bim-ui-dark");
   const titleColor = isDark ? "#4ade80" : "#6528d7";
 
-  // Default to first meter if none selected
   if (!_selectedMeterId && meters.length > 0) {
     _selectedMeterId = meters[0].id;
   }
@@ -152,15 +35,14 @@ export const iotDashboardTemplate: BUI.StatefullComponent<IoTManagerState> = (
 
   const avgFlowRate =
     meters.length > 0
-      ? meters.reduce((sum: number, m: any) => sum + m.flowRate, 0) /
-        meters.length
+      ? meters.reduce((sum: number, m) => sum + m.flowRate, 0) / meters.length
       : 0;
   const avgPressure =
     meters.length > 0
-      ? meters.reduce((sum: number, m: any) => sum + m.flowPressure, 0) /
+      ? meters.reduce((sum: number, m) => sum + m.flowPressure, 0) /
         meters.length
       : 0;
-  const onlineCount = meters.filter((m: any) => m.isOnline).length;
+  const onlineCount = meters.filter((m) => m.isOnline).length;
 
   return BUI.html`
     <div style="display: flex; flex-direction: column; gap: 16px; padding: 16px; height: 100%; overflow-y: auto; background: var(--bim-ui_bg-base);">
@@ -244,11 +126,11 @@ export const iotDashboardTemplate: BUI.StatefullComponent<IoTManagerState> = (
           <!-- Charts -->
           <div style="margin-bottom: 12px;">
             <div style="font-size: 10px; color: var(--bim-ui_text-dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px;">Flow Rate History</div>
-            ${createChart(history, "flowRate")}
+            ${createSmallChart(history, "flowRate")}
           </div>
           <div>
             <div style="font-size: 10px; color: var(--bim-ui_text-dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px;">Pressure History</div>
-            ${createChart(history, "flowPressure")}
+            ${createSmallChart(history, "flowPressure")}
           </div>
         </div>
       `
@@ -262,7 +144,7 @@ export const iotDashboardTemplate: BUI.StatefullComponent<IoTManagerState> = (
         </div>
         <div style="display: flex; flex-direction: column; gap: 4px;">
         ${meters.map(
-          (meter: any) => BUI.html`
+          (meter) => BUI.html`
           <div 
             style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; 
                    background: ${_selectedMeterId === meter.id ? "rgba(96, 165, 250, 0.15)" : "var(--bim-ui_bg-contrast-10)"}; 

@@ -1,16 +1,15 @@
 import * as BUI from "@thatopen/ui";
 import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
-import {
-  LiveIoTManager,
-  HistoricalDataPoint,
-} from "../../utils/LiveIoTManager";
+import { LiveIoTManager } from "../../utils/LiveIoTManager";
 import { appIcons } from "../../globals";
+import { createLargeChart } from "../../utils/charts/ChartRenderer";
+import { calculateLeakIndicators } from "../../utils/analytics/AnalyticsCalculator";
 
 export interface BimAnalyticsManagerState {
   iotManager: LiveIoTManager;
-  components?: OBC.Components; // Needed for Highlighter access
-  selectedElementId?: string | null; // Digital Twin: ID of the selected 3D element
+  components?: OBC.Components;
+  selectedElementId?: string | null;
 }
 
 let _iotManager: LiveIoTManager;
@@ -19,193 +18,35 @@ let _refreshKey = 0;
 let _components: OBC.Components | null = null;
 let _simulationStarted = false;
 
-function calculateLeakIndicators(history: HistoricalDataPoint[]) {
-  if (history.length === 0)
-    return { mnf: 0, avg: 0, max: 0, isLeakLikely: false };
-  const flows = history.map((h) => h.flowRate);
-
-  const mnf = Math.min(...flows);
-  const avg = flows.reduce((a, b) => a + b, 0) / flows.length;
-  const max = Math.max(...flows);
-
-  const isLeakLikely = mnf > avg * 0.7 && avg > 10;
-
-  return { mnf, avg, max, isLeakLikely };
-}
-
-function createChart(
-  history: HistoricalDataPoint[],
-  type: "flowRate" | "flowPressure",
-): HTMLDivElement {
-  const container = document.createElement("div");
-  container.style.position = "relative";
-  container.style.width = "100%";
-  container.style.height = "200px";
-  container.style.overflow = "hidden";
-
-  const canvas = document.createElement("canvas");
-  canvas.width = 600;
-  canvas.height = 300;
-  canvas.style.width = "100%";
-  canvas.style.height = "100%";
-  canvas.style.objectFit = "fill";
-  container.appendChild(canvas);
-
-  const tooltip = document.createElement("div");
-  tooltip.style.cssText = `
-    position: absolute;
-    display: none;
-    background: rgba(0,0,0,0.9);
-    color: white;
-    padding: 6px 10px;
-    border-radius: 4px;
-    font-size: 12px;
-    pointer-events: none;
-    z-index: 10;
-    border: 1px solid #555;
-  `;
-  container.appendChild(tooltip);
-
-  const ctx = canvas.getContext("2d")!;
-
-  const draw = () => {
-    const width = canvas.width;
-    const height = canvas.height;
-
-    if (history.length < 2) {
-      ctx.fillStyle = "#6b7280";
-      ctx.font = "bold 16px sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText("Insufficient data for chart", width / 2, height / 2);
-      return;
-    }
-
-    const values = history.map((h) => h[type]);
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    const range = max - min || 1;
-
-    const padding = 25;
-    const chartWidth = width - padding * 2;
-    const chartHeight = height - padding * 2;
-
-    ctx.fillStyle = "transparent";
-    ctx.fillRect(0, 0, width, height);
-
-    // Grid
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= 4; i++) {
-      const y = padding + (chartHeight / 4) * i;
-      ctx.beginPath();
-      ctx.moveTo(padding, y);
-      ctx.lineTo(width - padding, y);
-      ctx.stroke();
-    }
-
-    // Line
-    const color = type === "flowRate" ? "#4ade80" : "#f87171";
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-
-    for (let i = 0; i < values.length; i++) {
-      const x = padding + (i / (values.length - 1)) * chartWidth;
-      const y =
-        padding + chartHeight - ((values[i] - min) / range) * chartHeight;
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-
-    // Fill
-    ctx.lineTo(padding + chartWidth, padding + chartHeight);
-    ctx.lineTo(padding, padding + chartHeight);
-    ctx.closePath();
-    ctx.fillStyle = color;
-    ctx.globalAlpha = 0.15;
-    ctx.fill();
-    ctx.globalAlpha = 1;
-
-    // Labels
-    ctx.fillStyle = "#9ca3af";
-    ctx.font = "bold 14px sans-serif";
-    ctx.textAlign = "left";
-    ctx.fillText(max.toFixed(1), padding, padding + 15);
-    ctx.fillText(min.toFixed(1), padding, height - 10);
-  };
-
-  // Add hover interaction
-  canvas.onmousemove = (e) => {
-    if (history.length < 2) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-    const padding = 25;
-    const chartWidth = canvas.width - padding * 2;
-
-    const index = Math.round(
-      ((x - padding) / chartWidth) * (history.length - 1),
-    );
-    if (index >= 0 && index < history.length) {
-      const point = history[index];
-
-      tooltip.style.display = "block";
-      tooltip.style.left = `${e.clientX - rect.left + 10}px`;
-      tooltip.style.top = `${e.clientY - rect.top - 30}px`;
-
-      const time = new Date(point.timestamp).toLocaleTimeString();
-      const value =
-        type === "flowRate"
-          ? point.flowRate.toFixed(1)
-          : point.flowPressure.toFixed(2);
-      const unit = type === "flowRate" ? "L/min" : "bar";
-      tooltip.innerHTML = `<strong>${time}</strong><br/>${value} ${unit}`;
-    }
-  };
-
-  canvas.onmouseout = () => {
-    tooltip.style.display = "none";
-  };
-
-  draw();
-  return container;
-}
-
 export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
   BimAnalyticsManagerState
 > = (state, update) => {
   _iotManager = state.iotManager;
   _components = state.components || null;
 
-  // Auto-refresh every 5 seconds when simulation is running
   if (_simulationStarted) {
     setInterval(() => {
       update();
     }, 5000);
   }
 
-  // Digital Twin: Setup Highlighter Listener for Auto-Selection
   if (state.components) {
     const highlighter = state.components.get(OBF.Highlighter);
     if (highlighter && highlighter.events.select) {
       highlighter.events.select.onHighlight.add((modelIdMap) => {
-        // Find the first selected item
         const modelId = Object.keys(modelIdMap)[0];
         if (modelId) {
           const localIds = modelIdMap[modelId];
           if (localIds && localIds.size > 0) {
-            // Construct the meter ID (format: modelId-localId)
-            // localIds is a Set, get the first value
             const firstLocalId = Array.from(localIds)[0];
             const targetId = `${modelId}-${firstLocalId}`;
 
-            // Check if this ID exists in our meters
             const meterExists = _iotManager
               .getAllFlowMeters()
               .some((m) => m.id === targetId);
             if (meterExists) {
               _selectedMeterId = targetId;
-              update(); // Refresh UI
+              update();
             }
           }
         }
@@ -234,10 +75,9 @@ export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
     _selectedMeterId = dropdown.value[0] as string;
     _refreshKey++;
 
-    // Digital Twin Reverse: Highlight element in viewport
     if (_selectedMeterId && _components) {
       const parts = _selectedMeterId.split("-");
-      const modelId = parts.slice(0, -1).join("-"); // Everything except last part
+      const modelId = parts.slice(0, -1).join("-");
       const localId = parseInt(parts[parts.length - 1]);
 
       if (!isNaN(localId)) {
@@ -248,7 +88,6 @@ export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
             const model = fragments.list.get(modelId);
 
             if (model && highlighter) {
-              // Use highlightByID with 'select' style
               await highlighter.highlightByID(
                 "select",
                 { [modelId]: new Set([localId]) },
@@ -297,7 +136,7 @@ export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
         <bim-dropdown @change=${onMeterChange} style="margin-bottom: 8px; flex-shrink: 0;">
           <bim-option label="Select Flowmeter" value="" disabled></bim-option>
           ${meters.map(
-            (m: any) => BUI.html`
+            (m) => BUI.html`
             <bim-option label="${m.name} (${m.id})" value="${m.id}" ?checked=${m.id === _selectedMeterId}></bim-option>
           `,
           )}
@@ -341,13 +180,13 @@ export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
             <div>
               <div style="font-size: 14px; color: var(--bim-ui_text-dim); margin-bottom: 8px; font-weight: 600;">Flow Rate (L/min)</div>
               <div style="background: var(--bim-ui_bg-contrast-20); border-radius: 8px; padding: 8px; min-height: 200px;">
-                ${createChart(history, "flowRate")}
+                ${createLargeChart(history, "flowRate")}
               </div>
             </div>
             <div>
               <div style="font-size: 14px; color: var(--bim-ui_text-dim); margin-bottom: 8px; font-weight: 600;">Pressure (bar)</div>
               <div style="background: var(--bim-ui_bg-contrast-20); border-radius: 8px; padding: 8px; min-height: 200px;">
-                ${createChart(history, "flowPressure")}
+                ${createLargeChart(history, "flowPressure")}
               </div>
             </div>
         </div>

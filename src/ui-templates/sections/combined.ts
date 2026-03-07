@@ -19,27 +19,6 @@ export const combinedPanelTemplate: BUI.StatefullComponent<
   const highlighter = components.get(OBF.Highlighter);
   const viewpointsManager = components.get(OBC.Viewpoints);
 
-  // Load preset fragments (Disabled - handled in main.ts)
-  /*
-  const loadPresetFragments = async () => {
-    const fragPaths = ["/water_mains.frag"];
-    try {
-      await Promise.all(
-        fragPaths.map(async (path) => {
-          const modelId = path.split("/").pop()?.split(".").shift();
-          if (!modelId) return null;
-          const file = await fetch(path);
-          const buffer = await file.arrayBuffer();
-          return fragments.core.load(buffer, { modelId });
-        }),
-      );
-    } catch (err) {
-      console.warn("Failed to load preset fragments:", err);
-    }
-  };
-  loadPresetFragments();
-  */
-
   const [modelsList] = CUI.tables.modelsList({
     components,
     actions: { download: false },
@@ -176,7 +155,6 @@ export const combinedPanelTemplate: BUI.StatefullComponent<
     target.loading = false;
   };
 
-  // Filter panel logic
   const finder = components.get(OBC.ItemsFinder);
   const hider = components.get(OBC.Hider);
 
