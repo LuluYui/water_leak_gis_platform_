@@ -281,6 +281,7 @@ app.layout = "App";
 (window as any).world = world;
 (window as any).fragments = fragments;
 (window as any).THREE = THREE;
+(window as any).liveIoTManager = liveIoTManager;
 
 if (!recommendedSettings.enablePostProcessing && world.renderer) {
   console.log("[App] Disabling post-processing for low-end device");
@@ -289,6 +290,8 @@ if (!recommendedSettings.enablePostProcessing && world.renderer) {
     renderer.postproduction.enabled = false;
   }
 }
+
+console.log(`[App] Using ${liveIoTManager.getMarkerMode()} marker mode`);
 
 const loadInitialFragment = async () => {
   const progressiveLoader = createProgressiveLoader(fragments);

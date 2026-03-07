@@ -40,5 +40,6 @@ export function getRecommendedSettings(capabilities: DeviceCapabilities) {
     maxRetries: capabilities.isLowMemory ? 3 : 1,
     enableFrustumCulling: true,
     enableOptimizations: capabilities.isLowEnd,
+    markerMode: capabilities.isLowEnd ? "sprite" : "sprite",
   };
 }

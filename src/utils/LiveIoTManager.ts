@@ -47,7 +47,7 @@ export class LiveIoTManager extends SimpleEventEmitter {
   private leakConfig: LeakPointConfig[] = defaultLeakConfig;
   private meterLeakMap: Map<string, LeakPointConfig[]> = new Map();
 
-  private markerMode: MarkerMode = "dom";
+  private markerMode: MarkerMode = "sprite";
   private markerUpdateThrottleMs: number = 1000;
   private lastMarkerUpdate: Map<string, number> = new Map();
   private spriteGroup: THREE.Group | null = null;
@@ -572,6 +572,9 @@ export class LiveIoTManager extends SimpleEventEmitter {
     const sprite = markerData.sprite;
     if (sprite && sprite.position) {
       this.spriteRenderer.updateSpritePosition(sprite, meter);
+      if (this.shouldUpdateMarker(_id)) {
+        this.spriteRenderer.updateSpriteTexture(sprite, meter);
+      }
     }
     if (markerData.line) {
       const markerPosition = meter.position

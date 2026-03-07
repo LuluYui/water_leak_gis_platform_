@@ -3,39 +3,60 @@ import { LiveFlowMeter } from "../../types";
 import { MARKER_CONFIG, SIMULATION_CONFIG } from "../../config/appConfig";
 
 export class SpriteMarkerRenderer {
-  private spriteMaterial: THREE.SpriteMaterial;
   private markerOffset: THREE.Vector3;
-  private canvas: HTMLCanvasElement;
 
   constructor() {
     this.markerOffset = SIMULATION_CONFIG.markerOffset;
-    this.canvas = this.createMarkerCanvas("#4a90d9");
-    const texture = new THREE.CanvasTexture(this.canvas);
-    this.spriteMaterial = new THREE.SpriteMaterial({ map: texture });
   }
 
-  private createMarkerCanvas(color: string): HTMLCanvasElement {
+  createMarkerTexture(meter: LiveFlowMeter): THREE.CanvasTexture {
     const canvas = document.createElement("canvas");
-    canvas.width = 64;
-    canvas.height = 64;
+    canvas.width = 128;
+    canvas.height = 80;
     const ctx = canvas.getContext("2d")!;
 
-    ctx.beginPath();
-    ctx.arc(32, 32, 28, 0, Math.PI * 2);
-    ctx.fillStyle = color;
+    const bgColor = "rgba(0, 0, 0, 0.85)";
+    const borderColor = MARKER_CONFIG.colors.marker;
+    const flowColor =
+      meter.flowRate > 150
+        ? MARKER_CONFIG.colors.flowRate
+        : meter.flowRate > 80
+          ? "#fbbf24"
+          : MARKER_CONFIG.colors.pressure;
+
+    ctx.fillStyle = bgColor;
+    ctx.roundRect(2, 2, 124, 76, 8);
     ctx.fill();
-    ctx.strokeStyle = "white";
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = 2;
     ctx.stroke();
 
-    return canvas;
+    ctx.fillStyle = borderColor;
+    ctx.font = "bold 12px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(meter.name.substring(0, 12), 64, 20);
+
+    ctx.fillStyle = flowColor;
+    ctx.font = "bold 18px sans-serif";
+    ctx.fillText(`${meter.flowRate.toFixed(0)} L/m`, 64, 45);
+
+    ctx.fillStyle = MARKER_CONFIG.colors.pressure;
+    ctx.font = "12px sans-serif";
+    ctx.fillText(`${meter.flowPressure.toFixed(1)} bar`, 64, 65);
+
+    return new THREE.CanvasTexture(canvas);
   }
 
   createSprite(meter: LiveFlowMeter): THREE.Sprite {
-    const sprite = new THREE.Sprite(this.spriteMaterial.clone());
-    sprite.scale.set(3, 3, 1);
+    const texture = this.createMarkerTexture(meter);
+    const material = new THREE.SpriteMaterial({
+      map: texture,
+      transparent: true,
+    });
+    const sprite = new THREE.Sprite(material);
+    sprite.scale.set(4, 2.5, 1);
     sprite.position.copy(meter.position).add(this.markerOffset);
-    sprite.userData = { meterId: meter.id };
+    sprite.userData = { meterId: meter.id, texture };
     return sprite;
   }
 
@@ -62,6 +83,14 @@ export class SpriteMarkerRenderer {
 
   updateSpritePosition(sprite: THREE.Sprite, meter: LiveFlowMeter): void {
     sprite.position.copy(meter.position).add(this.markerOffset);
+  }
+
+  updateSpriteTexture(sprite: THREE.Sprite, meter: LiveFlowMeter): void {
+    const oldTexture = sprite.material.map;
+    const newTexture = this.createMarkerTexture(meter);
+    (sprite.material as THREE.SpriteMaterial).map = newTexture;
+    (sprite.material as THREE.SpriteMaterial).needsUpdate = true;
+    if (oldTexture) oldTexture.dispose();
   }
 
   createLinkageLine(
