@@ -86,6 +86,27 @@ components.init();
 const highlighter = components.get(OBF.Highlighter);
 highlighter.setup({ world });
 highlighter.enabled = true;
+
+const lengthMeasurer = components.get(OBF.LengthMeasurement);
+lengthMeasurer.world = world;
+
+const areaMeasurer = components.get(OBF.AreaMeasurement);
+areaMeasurer.world = world;
+
+const clipper = components.get(OBC.Clipper);
+
+viewport.addEventListener("dblclick", () => {
+  if (lengthMeasurer.enabled) {
+    lengthMeasurer.create();
+  }
+  if (areaMeasurer.enabled) {
+    areaMeasurer.create();
+  }
+  if (clipper.enabled) {
+    clipper.create(world);
+  }
+});
+
 // Enable picking for digital twin functionality
 const raycaster = components.get(OBC.Raycasters).get(world);
 raycaster.enabled = true;
@@ -236,7 +257,7 @@ app.elements = {
       compact: true,
       layoutIcons: {
         Viewer: appIcons.MODEL,
-        Analytics: appIcons.CHART,
+        "DMA/PMA Dashboard": appIcons.CHART,
         BimAnalytics: appIcons.TASK,
       },
     },

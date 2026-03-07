@@ -136,13 +136,13 @@ export const viewportButtonsTemplate: BUI.StatefullComponent<
   return BUI.html`
     <bim-toolbar style="align-self: start; justify-self: start; margin: 1rem;" vertical>
       <bim-toolbar-section>
-        <bim-button @click=${onMeasurementsClick} ?active=${areMeasurementsEnabled} label="Measurements" tooltip-title="Measurements" icon=${appIcons.RULER}>
+        <bim-button @click=${onMeasurementsClick} ?active=${areMeasurementsEnabled} label="Measurements" tooltip-title="Measurements" tooltip-text="Double-click on model to measure" icon=${appIcons.RULER}>
           <bim-context-menu>
             <bim-button ?active=${lengthMeasurer.enabled} label="Length" @click=${onLengthMeasurement}></bim-button>
             <bim-button ?active=${areaMeasurer.enabled} label="Area" @click=${onAreaMeasurement}></bim-button>
           </bim-context-menu>
         </bim-button>
-        <bim-button ?active=${clipper.enabled} @click=${onModelSection} label="Section" tooltip-title="Model Section" icon=${appIcons.CLIPPING}></bim-button>
+        <bim-button ?active=${clipper.enabled} @click=${onModelSection} label="Section" tooltip-title="Model Section" tooltip-text="Double-click on model to clip" icon=${appIcons.CLIPPING}></bim-button>
         <bim-button ?active=${isMarkersVisible} @click=${onToggleMarkers} label="Markers" tooltip-title=${tooltips.MARKERS.TITLE} icon=${appIcons.MARKER}></bim-button>
         <bim-button ?active=${isGridVisible} @click=${onToggleGrid} label="Grid" tooltip-title=${tooltips.GRID.TITLE} icon=${appIcons.GRID}></bim-button>
         <bim-button ?active=${_isSimulationMenuOpen} @click=${onToggleSimulationMenu} label="Simulation" tooltip-title=${tooltips.SIMULATION.TITLE} tooltip-text=${tooltips.SIMULATION.TEXT} icon=${appIcons.SIMULATION}>
