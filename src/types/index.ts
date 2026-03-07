@@ -27,6 +27,7 @@ export interface FlowMeterMarkerData {
   markerId_internal?: string | null;
   markerIdInternal?: string | null;
   leakPoints?: LeakPointConfig[];
+  sprite?: THREE.Sprite;
 }
 
 export interface LeakPointConfig {

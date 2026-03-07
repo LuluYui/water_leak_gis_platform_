@@ -10,9 +10,11 @@ import {
 } from "../types";
 import { SimulationController } from "./io/SimulationController";
 import { MarkerRenderer } from "./io/MarkerRenderer";
+import { SpriteMarkerRenderer } from "./io/SpriteMarkerRenderer";
 import { SIMULATION_CONFIG } from "../config/appConfig";
 
 export type FlowMeterUpdateCallback = (meter: LiveFlowMeter) => void;
+export type MarkerMode = "dom" | "sprite";
 
 export type {
   HistoricalDataPoint,
@@ -36,6 +38,7 @@ export class LiveIoTManager extends SimpleEventEmitter {
 
   private simulationController: SimulationController;
   private markerRenderer: MarkerRenderer;
+  private spriteRenderer: SpriteMarkerRenderer;
 
   public markersVisible: boolean = true;
   private allMarkerElements: HTMLElement[] = [];
@@ -44,10 +47,44 @@ export class LiveIoTManager extends SimpleEventEmitter {
   private leakConfig: LeakPointConfig[] = defaultLeakConfig;
   private meterLeakMap: Map<string, LeakPointConfig[]> = new Map();
 
+  private markerMode: MarkerMode = "dom";
+  private markerUpdateThrottleMs: number = 1000;
+  private lastMarkerUpdate: Map<string, number> = new Map();
+  private spriteGroup: THREE.Group | null = null;
+
   constructor() {
     super();
     this.simulationController = new SimulationController();
     this.markerRenderer = new MarkerRenderer();
+    this.spriteRenderer = new SpriteMarkerRenderer();
+  }
+
+  public setMarkerMode(mode: MarkerMode): void {
+    if (this.markerMode === mode) return;
+
+    const wasRunning = this.simulationController.isRunning();
+    if (wasRunning) this.stopSimulation();
+
+    this.markerMode = mode;
+
+    if (this.flowMeters.size > 0) {
+      this.clearMarkers();
+      this.createMarkers();
+    }
+
+    if (wasRunning) this.startSimulation();
+  }
+
+  public getMarkerMode(): MarkerMode {
+    return this.markerMode;
+  }
+
+  public setMarkerUpdateThrottle(ms: number): void {
+    this.markerUpdateThrottleMs = ms;
+  }
+
+  public getMarkerUpdateThrottle(): number {
+    return this.markerUpdateThrottleMs;
   }
 
   public setUpdateInterval(ms: number): void {
@@ -365,6 +402,38 @@ export class LiveIoTManager extends SimpleEventEmitter {
     this.allMarkerElements = [];
   }
 
+  private shouldUpdateMarker(meterId: string): boolean {
+    const now = Date.now();
+    const lastUpdate = this.lastMarkerUpdate.get(meterId) || 0;
+    return now - lastUpdate >= this.markerUpdateThrottleMs;
+  }
+
+  private markMarkerUpdated(meterId: string): void {
+    this.lastMarkerUpdate.set(meterId, Date.now());
+  }
+
+  clearMarkers(): void {
+    if (this.markerMode === "sprite" && this.spriteGroup && this.world) {
+      this.world.scene.three.remove(this.spriteGroup);
+      this.spriteGroup = null;
+    }
+
+    if (this.markerMode === "dom") {
+      for (const [, data] of this.markerData) {
+        if (data.line) {
+          this.world?.scene.three.remove(data.line);
+        }
+        if (data.element?.parentNode) {
+          data.element.parentNode.removeChild(data.element);
+        }
+      }
+    }
+
+    this.markerData.clear();
+    this.allMarkerElements = [];
+    this.lastMarkerUpdate.clear();
+  }
+
   private updateSimulationData(): void {
     if (!this.world) return;
 
@@ -385,47 +454,86 @@ export class LiveIoTManager extends SimpleEventEmitter {
   }
 
   createMarkers(): void {
+    if (!this.world) return;
+
+    this.clearMarkers();
+
+    if (this.markerMode === "sprite") {
+      this.createSpriteMarkers();
+    } else {
+      if (!this.markerComponent) return;
+      this.createDOMMarkers();
+    }
+  }
+
+  private createDOMMarkers(): void {
     if (!this.world || !this.markerComponent) return;
+
     this.clearAllClusterElements();
     this.allMarkerElements = [];
+
     for (const [id, meter] of this.flowMeters) {
-      this.createMarker(id, meter);
+      const element = this.markerRenderer.createMarkerElement(
+        meter,
+        this.markersVisible,
+      );
+      this.allMarkerElements.push(element);
+
+      const markerPosition = this.markerRenderer.getMarkerPosition(meter);
+
+      const markerIdInternal = this.markerComponent.create(
+        this.world,
+        element,
+        markerPosition,
+      );
+
+      const line = this.markerRenderer.createLinkageLine(
+        meter.position,
+        markerPosition,
+        this.markersVisible,
+      );
+      this.world.scene.three.add(line);
+
+      this.markerData.set(id, {
+        element,
+        position: markerPosition.clone(),
+        line,
+        markerIdInternal,
+      });
     }
+
     if (this.markersVisible) {
       this.triggerClustering();
     }
   }
 
-  private createMarker(id: string, meter: LiveFlowMeter): void {
-    if (!this.world || !this.markerComponent) return;
+  private createSpriteMarkers(): void {
+    if (!this.world) return;
 
-    const element = this.markerRenderer.createMarkerElement(
-      meter,
-      this.markersVisible,
-    );
-    this.allMarkerElements.push(element);
+    this.spriteGroup = new THREE.Group();
 
-    const markerPosition = this.markerRenderer.getMarkerPosition(meter);
+    for (const [id, meter] of this.flowMeters) {
+      const sprite = this.spriteRenderer.createSprite(meter);
+      sprite.visible = this.markersVisible;
+      this.spriteGroup.add(sprite);
 
-    const markerIdInternal = this.markerComponent.create(
-      this.world,
-      element,
-      markerPosition,
-    );
+      const line = this.spriteRenderer.createLinkageLine(
+        meter.position,
+        sprite.position,
+      );
+      line.visible = this.markersVisible;
+      this.spriteGroup.add(line);
 
-    const line = this.markerRenderer.createLinkageLine(
-      meter.position,
-      markerPosition,
-      this.markersVisible,
-    );
-    this.world.scene.three.add(line);
+      this.markerData.set(id, {
+        element: null as unknown as HTMLElement,
+        position: sprite.position.clone(),
+        line,
+        markerIdInternal: null,
+        sprite,
+      });
+    }
 
-    this.markerData.set(id, {
-      element,
-      position: markerPosition.clone(),
-      line,
-      markerIdInternal,
-    });
+    this.world.scene.three.add(this.spriteGroup);
   }
 
   private updateMarker(id: string): void {
@@ -433,7 +541,48 @@ export class LiveIoTManager extends SimpleEventEmitter {
     const markerData = this.markerData.get(id);
     if (!meter || !markerData) return;
 
+    if (this.markerMode === "sprite") {
+      this.updateSpriteMarker(id, meter, markerData);
+    } else {
+      this.updateDOMMarker(id, meter, markerData);
+    }
+  }
+
+  private shouldThrottleUpdate(meterId: string): boolean {
+    if (this.markerMode === "sprite") return false;
+    if (!this.shouldUpdateMarker(meterId)) return true;
+    this.markMarkerUpdated(meterId);
+    return false;
+  }
+
+  private updateDOMMarker(
+    id: string,
+    meter: LiveFlowMeter,
+    markerData: FlowMeterMarkerData,
+  ): void {
+    if (this.shouldThrottleUpdate(id)) return;
     this.markerRenderer.updateMarkerContent(markerData.element, meter);
+  }
+
+  private updateSpriteMarker(
+    _id: string,
+    meter: LiveFlowMeter,
+    markerData: FlowMeterMarkerData,
+  ): void {
+    const sprite = markerData.sprite;
+    if (sprite && sprite.position) {
+      this.spriteRenderer.updateSpritePosition(sprite, meter);
+    }
+    if (markerData.line) {
+      const markerPosition = meter.position
+        .clone()
+        .add(SIMULATION_CONFIG.markerOffset);
+      this.spriteRenderer.updateLine(
+        markerData.line,
+        meter.position,
+        markerPosition,
+      );
+    }
   }
 
   getAllFlowMeters(): LiveFlowMeter[] {
