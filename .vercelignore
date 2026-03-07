@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+
+# Development
+.env
+.env.local
+.env.*.local
+
+# Docs
+docs/
+*.md
+!README.md
+
+# Backend
+backend/
+
+# IDE
+.vscode/
+.idea/
+
+# Git
+.git/
+.gitignore
