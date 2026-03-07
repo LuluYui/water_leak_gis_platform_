@@ -120,7 +120,7 @@ viewport.addEventListener("dblclick", () => {
 const raycaster = components.get(OBC.Raycasters).get(world);
 raycaster.enabled = true;
 const fragments = components.get(OBC.FragmentsManager);
-fragments.init("/node_modules/@thatopen/fragments/dist/Worker/worker.mjs");
+fragments.init("/worker.mjs");
 
 const ifcLoader = components.get(OBC.IfcLoader);
 await ifcLoader.setup({
