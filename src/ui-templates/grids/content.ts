@@ -30,7 +30,11 @@ export type ContentGridElements = [
   BimAnalytics,
 ];
 
-export type ContentGridLayouts = ["Viewer", "Analytics", "BimAnalytics"];
+export type ContentGridLayouts = [
+  "Viewer",
+  "DMA/PMA Dashboard",
+  "BimAnalytics",
+];
 
 export interface ContentGridState {
   components: OBC.Components;
@@ -51,7 +55,7 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
 
   const defaultWidths: Record<ContentGridLayouts[number], number> = {
     Viewer: 25,
-    Analytics: 60,
+    "DMA/PMA Dashboard": 60,
     BimAnalytics: 60,
   };
 
@@ -59,18 +63,17 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
     if (!e) return;
     const grid = e as BUI.Grid<ContentGridLayouts, ContentGridElements>;
 
-    // Create Resizer Element
     const resizerElement = document.createElement("div");
     resizerElement.className = "grid-resizer";
     resizerElement.style.cssText = `
       width: 100%;
       height: 100%;
       cursor: col-resize;
-      background: var(--bim-ui_bg-contrast-40); /* Visual Line */
+      background: var(--bim-ui_bg-contrast-40);
       transition: background 0.2s;
     `;
     resizerElement.onmouseover = () => {
-      resizerElement.style.background = "var(--bim-ui_accent-base)"; // Highlight on hover
+      resizerElement.style.background = "var(--bim-ui_accent-base)";
     };
     resizerElement.onmouseout = () => {
       resizerElement.style.background = "var(--bim-ui_bg-contrast-40)";
@@ -97,7 +100,7 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
       Viewer: {
         template: `"viewer resizer combined" 1fr /1fr 4px 25rem`,
       },
-      Analytics: {
+      "DMA/PMA Dashboard": {
         template: `"viewer resizer analytics" 1fr /1fr 4px 60rem`,
       },
       BimAnalytics: {
@@ -105,9 +108,7 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
       },
     };
 
-    // Wait for BUI to render the element, then attach listener
     const attachListener = () => {
-      // Find the actual resizer element in the DOM
       const renderedResizer = grid.querySelector(".grid-resizer");
       if (renderedResizer) {
         renderedResizer.addEventListener("mousedown", (e: Event) => {
@@ -124,7 +125,6 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
           e.stopPropagation();
         });
       } else {
-        // Retry if not rendered yet
         requestAnimationFrame(attachListener);
       }
     };
@@ -135,7 +135,7 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
       if (
         layout &&
         (layout === "Viewer" ||
-          layout === "Analytics" ||
+          layout === "DMA/PMA Dashboard" ||
           layout === "BimAnalytics")
       ) {
         currentLayout = layout;
@@ -147,16 +147,13 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
       const deltaX = e.clientX - startX;
       const deltaRem = deltaX / 16;
 
-      // Dragging Right (positive deltaX) -> Panel Shrinks (width decreases)
-      // Dragging Left (negative deltaX) -> Panel Grows (width increases)
       const newWidth = Math.max(15, Math.min(80, startWidth - deltaRem));
 
-      // Update layout
       grid.layouts = {
         Viewer: {
           template: `"viewer resizer combined" 1fr /1fr 4px ${newWidth}rem`,
         },
-        Analytics: {
+        "DMA/PMA Dashboard": {
           template: `"viewer resizer analytics" 1fr /1fr 4px ${newWidth}rem`,
         },
         BimAnalytics: {
@@ -164,7 +161,6 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
         },
       };
 
-      // Fallback: Direct CSS update if grid.layouts doesn't update visually
       const gridElement = grid;
       if (gridElement) {
         gridElement.style.gridTemplateColumns = `1fr 4px ${newWidth}rem`;
