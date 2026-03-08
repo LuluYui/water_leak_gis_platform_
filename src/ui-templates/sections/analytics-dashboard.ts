@@ -32,9 +32,10 @@ function calculateGlobalAnalytics(
 
   // Update global history for the trend chart
   const now = Date.now();
+  const currentInterval = _iotManager.getUpdateInterval();
   if (
     _globalHistory.length === 0 ||
-    now - _globalHistory[_globalHistory.length - 1].timestamp >= 5000
+    now - _globalHistory[_globalHistory.length - 1].timestamp >= currentInterval
   ) {
     _globalHistory.push({ timestamp: now, totalFlow: totalFlowRate });
     if (_globalHistory.length > 50) _globalHistory.shift();
@@ -59,11 +60,11 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
   const globalAnalytics = calculateGlobalAnalytics(meters, _iotManager);
 
   const running = _iotManager.isRunning();
-  // Auto-refresh every 5 seconds when simulation is running
+  const currentInterval = _iotManager.getUpdateInterval();
   if (running) {
     setInterval(() => {
       update();
-    }, 5000);
+    }, currentInterval);
   }
 
   const isDark = document.documentElement.classList.contains("bim-ui-dark");
@@ -201,8 +202,8 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
       </div>
 
         <div style="height: 350px;  flex-direction: column; align-items: center; justify-content: center; background: var(--bim-ui_bg-contrast-10); border-radius: 8px; border: 2px dashed var(--bim-ui_accent-base);">
-          <bim-button label="Start Live Simulation (5s)" icon="mdi:play" @click=${() => {
-            _iotManager.setUpdateInterval(5000);
+          <bim-button label="Start Live Simulation" icon="mdi:play" @click=${() => {
+            _iotManager.setUpdateInterval(350);
             _iotManager.startSimulation();
             update();
           }} style="font-size: 14px; padding: 10px 20px;"></bim-button>

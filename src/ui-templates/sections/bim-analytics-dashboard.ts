@@ -24,10 +24,11 @@ export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
   _components = state.components || null;
 
   const running = _iotManager.isRunning();
+  const currentInterval = _iotManager.getUpdateInterval();
   if (running) {
     setInterval(() => {
       update();
-    }, 5000);
+    }, currentInterval);
   }
 
   if (state.components) {
@@ -207,7 +208,7 @@ export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
                 !running
                   ? BUI.html`
                 <bim-button label="Start Live Simulation" icon="mdi:play" @click=${() => {
-                  _iotManager.setUpdateInterval(5000);
+                  _iotManager.setUpdateInterval(350);
                   _iotManager.startSimulation();
                   update();
                 }} style="background: #4ade80; color: #000; font-size: 16px; padding: 12px 24px;"></bim-button>
@@ -215,7 +216,7 @@ export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
                   💡 Tip: Click the button above to start the simulation. You can then select flow meters from the dropdown or click on 3D elements to view details.
                 </div>
               `
-                  : BUI.html`<div style="font-size: 14px; color: #4ade80;">✅ Simulation Active - Data updating every 5s</div>`
+                  : BUI.html`<div style="font-size: 14px; color: #4ade80;">✅ Simulation Active</div>`
               }
             </div>
           </bim-panel-section>`
