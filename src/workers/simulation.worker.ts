@@ -1,5 +1,4 @@
 import { SIMULATION_CONFIG } from "../config/appConfig";
-import type { HistoricalDataPoint } from "../types";
 
 interface LeakData {
   isActive: boolean;
@@ -19,7 +18,6 @@ interface WorkerMessage {
   meterUpdates: { id: string; baseFlowRate?: number }[];
   leaks: Map<string, LeakData[]>;
   maxHistoryPoints: number;
-  historicalData: Map<string, HistoricalDataPoint[]>;
 }
 
 function calculateDiurnalFactor(hour: number): number {
@@ -47,8 +45,6 @@ function updateMeterData(
     timestamp: Date;
   },
   leaks: LeakData[],
-  maxHistoryPoints: number,
-  historicalData: Map<string, HistoricalDataPoint[]>,
 ): void {
   const now = new Date();
   const hour = now.getHours() + now.getMinutes() / 60;
@@ -89,19 +85,10 @@ function updateMeterData(
   meter.flowPressure = Math.max(0, meter.flowPressure + pressureChange);
 
   meter.timestamp = now;
-
-  if (!historicalData.has(meter.id)) historicalData.set(meter.id, []);
-  const history = historicalData.get(meter.id)!;
-  history.push({
-    timestamp: meter.timestamp.getTime(),
-    flowRate: meter.flowRate,
-    flowPressure: meter.flowPressure,
-  });
-  if (history.length > maxHistoryPoints) history.shift();
 }
 
 self.onmessage = (e: MessageEvent<WorkerMessage>) => {
-  const { meterUpdates, leaks, maxHistoryPoints, historicalData } = e.data;
+  const { meterUpdates, leaks } = e.data;
 
   const updatedMeters: MeterUpdate[] = [];
 
@@ -118,7 +105,7 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
       timestamp: new Date(),
     };
 
-    updateMeterData(tempMeter, meterLeaks, maxHistoryPoints, historicalData);
+    updateMeterData(tempMeter, meterLeaks);
 
     updatedMeters.push({
       id: meter.id,
@@ -131,6 +118,5 @@ self.onmessage = (e: MessageEvent<WorkerMessage>) => {
   self.postMessage({
     type: "updated",
     meters: updatedMeters,
-    historicalData,
   });
 };

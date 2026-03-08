@@ -94,10 +94,13 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
       type: "line",
       data: {
         labels: _globalHistory.map((h) =>
-          new Date(h.timestamp).toLocaleTimeString([], {
+          new Date(h.timestamp).toLocaleString([], {
+            month: "short",
+            day: "numeric",
             hour: "2-digit",
             minute: "2-digit",
             second: "2-digit",
+            hour12: true,
           }),
         ),
         datasets: [
@@ -244,7 +247,14 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
                   return BUI.html`
                   <tr style="background: var(--bim-ui_bg-contrast-10); transition: all 0.2s; border-radius: 8px;">
                     <td style="padding: 16px; border-radius: 8px 0 0 8px; border-left: 3px solid ${titleColor};">
-                      ${new Date(h.timestamp).toLocaleTimeString()}
+                      ${new Date(h.timestamp).toLocaleString([], {
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                        hour12: true,
+                      })}
                     </td>
                     <td style="padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 500; color: ${isDark ? "#4ade80" : "#16a34a"};">
                       ${h.totalFlow.toFixed(2)}

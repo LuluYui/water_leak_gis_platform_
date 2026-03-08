@@ -199,7 +199,14 @@ export function createLargeChart(
       tooltip.style.left = `${e.clientX - rect.left + 10}px`;
       tooltip.style.top = `${e.clientY - rect.top - 30}px`;
 
-      const time = new Date(point.timestamp).toLocaleTimeString();
+      const time = new Date(point.timestamp).toLocaleString([], {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true,
+      });
       const value =
         type === "flowRate"
           ? point.flowRate.toFixed(1)

@@ -32,7 +32,7 @@ export class SimulationController {
         { type: "module" },
       );
       this.worker.onmessage = (e) => {
-        const { meters: updatedMeters, historicalData } = e.data;
+        const { meters: updatedMeters } = e.data;
 
         for (const update of updatedMeters) {
           const meter = this.meters.find((m) => m.id === update.id);
@@ -40,11 +40,22 @@ export class SimulationController {
             meter.flowRate = update.flowRate;
             meter.flowPressure = update.flowPressure;
             meter.timestamp = new Date(update.timestamp);
+
+            const meterHistory = this.historicalData.get(meter.id) || [];
+            meterHistory.push({
+              timestamp: update.timestamp,
+              flowRate: update.flowRate,
+              flowPressure: update.flowPressure,
+            });
+            if (meterHistory.length > this.maxHistoryPoints) {
+              meterHistory.shift();
+            }
+            this.historicalData.set(meter.id, meterHistory);
           }
         }
 
         if (this.onUpdateCallback) {
-          this.onUpdateCallback(this.meters, historicalData);
+          this.onUpdateCallback(this.meters, this.historicalData);
         }
         this.pendingUpdate = false;
       };
@@ -113,7 +124,6 @@ export class SimulationController {
         meterUpdates,
         leaks: this.leaks,
         maxHistoryPoints: this.maxHistoryPoints,
-        historicalData: this.historicalData,
       });
     } else {
       this.runOnMainThread();
