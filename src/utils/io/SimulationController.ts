@@ -32,9 +32,19 @@ export class SimulationController {
         { type: "module" },
       );
       this.worker.onmessage = (e) => {
-        const { meters, historicalData } = e.data;
+        const { meters: updatedMeters, historicalData } = e.data;
+
+        for (const update of updatedMeters) {
+          const meter = this.meters.find((m) => m.id === update.id);
+          if (meter) {
+            meter.flowRate = update.flowRate;
+            meter.flowPressure = update.flowPressure;
+            meter.timestamp = new Date(update.timestamp);
+          }
+        }
+
         if (this.onUpdateCallback) {
-          this.onUpdateCallback(meters, historicalData);
+          this.onUpdateCallback(this.meters, historicalData);
         }
         this.pendingUpdate = false;
       };
@@ -94,9 +104,13 @@ export class SimulationController {
     this.pendingUpdate = true;
 
     if (this.worker) {
+      const meterUpdates = this.meters.map((m) => ({
+        id: m.id,
+        baseFlowRate: m.baseFlowRate,
+      }));
       this.worker.postMessage({
         type: "update",
-        meters: this.meters,
+        meterUpdates,
         leaks: this.leaks,
         maxHistoryPoints: this.maxHistoryPoints,
         historicalData: this.historicalData,

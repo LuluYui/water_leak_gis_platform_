@@ -1,5 +1,5 @@
 import { SIMULATION_CONFIG } from "../config/appConfig";
-import type { LiveFlowMeter, HistoricalDataPoint } from "../types";
+import type { HistoricalDataPoint } from "../types";
 
 interface LeakData {
   isActive: boolean;
@@ -7,9 +7,16 @@ interface LeakData {
   pressureDrop: number;
 }
 
+interface MeterUpdate {
+  id: string;
+  flowRate: number;
+  flowPressure: number;
+  timestamp: number;
+}
+
 interface WorkerMessage {
   type: "update";
-  meters: LiveFlowMeter[];
+  meterUpdates: { id: string; baseFlowRate?: number }[];
   leaks: Map<string, LeakData[]>;
   maxHistoryPoints: number;
   historicalData: Map<string, HistoricalDataPoint[]>;
@@ -32,7 +39,13 @@ function calculateDiurnalFactor(hour: number): number {
 }
 
 function updateMeterData(
-  meter: LiveFlowMeter,
+  meter: {
+    id: string;
+    flowRate: number;
+    flowPressure: number;
+    baseFlowRate?: number;
+    timestamp: Date;
+  },
   leaks: LeakData[],
   maxHistoryPoints: number,
   historicalData: Map<string, HistoricalDataPoint[]>,
@@ -88,14 +101,31 @@ function updateMeterData(
 }
 
 self.onmessage = (e: MessageEvent<WorkerMessage>) => {
-  const { meters, leaks, maxHistoryPoints, historicalData } = e.data;
+  const { meterUpdates, leaks, maxHistoryPoints, historicalData } = e.data;
 
-  const updatedMeters: LiveFlowMeter[] = [];
+  const updatedMeters: MeterUpdate[] = [];
 
-  for (const meter of meters) {
+  for (const meter of meterUpdates) {
     const meterLeaks = leaks.get(meter.id) || [];
-    updateMeterData(meter, meterLeaks, maxHistoryPoints, historicalData);
-    updatedMeters.push(meter);
+    const currentFlowRate = meter.baseFlowRate || 50;
+    const currentPressure = SIMULATION_CONFIG.flowRate.targetPressure;
+
+    const tempMeter = {
+      id: meter.id,
+      flowRate: currentFlowRate,
+      flowPressure: currentPressure,
+      baseFlowRate: meter.baseFlowRate,
+      timestamp: new Date(),
+    };
+
+    updateMeterData(tempMeter, meterLeaks, maxHistoryPoints, historicalData);
+
+    updatedMeters.push({
+      id: meter.id,
+      flowRate: tempMeter.flowRate,
+      flowPressure: tempMeter.flowPressure,
+      timestamp: tempMeter.timestamp.getTime(),
+    });
   }
 
   self.postMessage({
