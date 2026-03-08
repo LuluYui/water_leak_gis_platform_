@@ -35,9 +35,6 @@ export function detectDeviceCapabilities(): DeviceCapabilities {
 export function getRecommendedSettings(capabilities: DeviceCapabilities) {
   return {
     enablePostProcessing: !capabilities.isLowEnd,
-    chunkSize: capabilities.isLowMemory ? 1 : 5,
-    chunkDelayMs: capabilities.isLowMemory ? 500 : 100,
-    maxRetries: capabilities.isLowMemory ? 3 : 1,
     enableFrustumCulling: true,
     enableOptimizations: capabilities.isLowEnd,
     markerMode: capabilities.isLowEnd ? "sprite" : "sprite",

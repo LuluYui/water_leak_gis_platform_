@@ -13,7 +13,6 @@ import {
   detectDeviceCapabilities,
   getRecommendedSettings,
 } from "./utils/DeviceDetector";
-import { createProgressiveLoader } from "./utils/ProgressiveFragmentLoader";
 
 const deviceCapabilities = detectDeviceCapabilities();
 const recommendedSettings = getRecommendedSettings(deviceCapabilities);
@@ -294,54 +293,20 @@ if (!recommendedSettings.enablePostProcessing && world.renderer) {
 console.log(`[App] Using ${liveIoTManager.getMarkerMode()} marker mode`);
 
 const loadInitialFragment = async () => {
-  const progressiveLoader = createProgressiveLoader(fragments);
-
-  const success = await progressiveLoader.loadModel(
-    "/water_mains.frag",
-    "water_mains",
-    {
-      chunkSize: recommendedSettings.chunkSize,
-      chunkDelayMs: recommendedSettings.chunkDelayMs,
-      maxRetries: recommendedSettings.maxRetries,
-      onProgress: (loaded, total, _chunkIndex) => {
-        console.log(
-          `[App] Loading: ${loaded}/${total} chunks (${Math.round((loaded / total) * 100)}%)`,
-        );
-      },
-      onComplete: (ok, loaded) => {
-        if (ok) {
-          console.log(
-            `[App] Loaded water_mains.frag successfully (${loaded} chunks)`,
-          );
-        } else {
-          console.error(
-            `[App] Failed to load water_mains.frag (${loaded} chunks loaded)`,
-          );
-        }
-      },
-      onError: (error, chunkIdx, retries) => {
-        console.warn(
-          `[App] Chunk ${chunkIdx} error (retry ${retries}):`,
-          error.message,
-        );
-      },
-    },
-  );
-
-  if (!success) {
-    console.warn("[App] Progressive loading failed, trying direct load...");
-    try {
-      const file = await fetch("/water_mains.frag");
-      if (file.ok) {
-        const data = await file.arrayBuffer();
-        await fragments.core.load(new Uint8Array(data), {
-          modelId: "water_mains",
-        });
-        console.log("[App] Fallback: Direct load succeeded");
-      }
-    } catch (fallbackError) {
-      console.error("[App] Fallback loading also failed:", fallbackError);
+  console.log("[App] Loading water_mains.frag...");
+  try {
+    const file = await fetch("/water_mains.frag");
+    if (!file.ok) {
+      console.error(`[App] Failed to fetch: ${file.status}`);
+      return;
     }
+    const data = await file.arrayBuffer();
+    await fragments.core.load(new Uint8Array(data), {
+      modelId: "water_mains",
+    });
+    console.log("[App] Loaded water_mains.frag successfully");
+  } catch (error) {
+    console.error("[App] Failed to load water_mains.frag:", error);
   }
 };
 
