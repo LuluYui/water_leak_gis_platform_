@@ -190,8 +190,17 @@ fragments.list.onItemSet.add(async ({ value: model }) => {
   }
 
   const controls = world.camera.controls;
-  // Use the original hardcoded camera position for the best viewing angle
+  const hider = components.get(OBC.Hider);
+
   controls.setLookAt(-50, 70, 70, -116, 0, 30, true);
+
+  setTimeout(async () => {
+    if (hider) {
+      await hider.set(true);
+    }
+    world.camera.three.updateProjectionMatrix();
+    await fragments.core.update(true);
+  }, 700);
 });
 
 // Layout / UI Integration
