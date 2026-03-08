@@ -9,23 +9,61 @@ export class SpriteMarkerRenderer {
     this.markerOffset = SIMULATION_CONFIG.markerOffset;
   }
 
+  private wrapText(
+    ctx: CanvasRenderingContext2D,
+    text: string,
+    maxWidth: number,
+  ): string[] {
+    const lines: string[] = [];
+    const words = text.split(" ");
+    let currentLine = "";
+
+    for (const word of words) {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      const metrics = ctx.measureText(testLine);
+      if (metrics.width > maxWidth && currentLine) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    }
+    if (currentLine) lines.push(currentLine);
+    return lines;
+  }
+
   createMarkerTexture(meter: LiveFlowMeter): THREE.CanvasTexture {
     const canvas = document.createElement("canvas");
-    canvas.width = 128;
-    canvas.height = 80;
+    canvas.width = 200;
+    canvas.height = 100;
     const ctx = canvas.getContext("2d")!;
 
     const bgColor = "rgba(0, 0, 0, 0.85)";
     const borderColor = MARKER_CONFIG.colors.marker;
-    const flowColor =
-      meter.flowRate > 150
-        ? MARKER_CONFIG.colors.flowRate
-        : meter.flowRate > 80
-          ? "#fbbf24"
-          : MARKER_CONFIG.colors.pressure;
+
+    const RATE_HIGH = 150;
+    const RATE_MED = 80;
+    const RATE_LOW = 30;
+
+    const getFlowRateColor = (rate: number) => {
+      if (rate > RATE_HIGH) return "#ef4444";
+      if (rate > RATE_MED) return "#fbbf24";
+      if (rate < RATE_LOW) return "#60a5fa";
+      return "#4ade80";
+    };
+
+    const getPressureColor = (pressure: number) => {
+      if (pressure > 5) return "#ef4444";
+      if (pressure < 2) return "#60a5fa";
+      if (pressure > 4) return "#fbbf24";
+      return "#4ade80";
+    };
+
+    const flowColor = getFlowRateColor(meter.flowRate);
+    const pressureColor = getPressureColor(meter.flowPressure);
 
     ctx.fillStyle = bgColor;
-    ctx.roundRect(2, 2, 124, 76, 8);
+    ctx.roundRect(2, 2, 196, 96, 8);
     ctx.fill();
     ctx.strokeStyle = borderColor;
     ctx.lineWidth = 2;
@@ -34,15 +72,39 @@ export class SpriteMarkerRenderer {
     ctx.fillStyle = borderColor;
     ctx.font = "bold 12px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText(meter.name.substring(0, 12), 64, 20);
+    const titleText = meter.localId
+      ? `${meter.name} (#${meter.localId})`
+      : meter.name;
+    const titleLines = this.wrapText(ctx, titleText, 180);
+    let titleY = 18;
+    for (const line of titleLines) {
+      ctx.fillText(line, 100, titleY);
+      titleY += 14;
+    }
 
+    const dataStartY = titleY + 6;
+    const labelX = 15;
+    const valueX = 185;
+
+    ctx.font = "bold 11px sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#d1d5db";
+    ctx.fillText(`Flow:`, labelX, dataStartY);
+    ctx.textAlign = "right";
     ctx.fillStyle = flowColor;
-    ctx.font = "bold 18px sans-serif";
-    ctx.fillText(`${meter.flowRate.toFixed(0)} L/m`, 64, 45);
+    ctx.fillText(`${meter.flowRate.toFixed(0)} L/m`, valueX, dataStartY);
 
-    ctx.fillStyle = MARKER_CONFIG.colors.pressure;
-    ctx.font = "12px sans-serif";
-    ctx.fillText(`${meter.flowPressure.toFixed(1)} bar`, 64, 65);
+    ctx.font = "11px sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#d1d5db";
+    ctx.fillText(`Pressure:`, labelX, dataStartY + 16);
+    ctx.textAlign = "right";
+    ctx.fillStyle = pressureColor;
+    ctx.fillText(
+      `${meter.flowPressure.toFixed(1)} bar`,
+      valueX,
+      dataStartY + 16,
+    );
 
     return new THREE.CanvasTexture(canvas);
   }
@@ -54,13 +116,13 @@ export class SpriteMarkerRenderer {
       transparent: true,
     });
     const sprite = new THREE.Sprite(material);
-    sprite.scale.set(4, 2.5, 1);
+    sprite.scale.set(6.25, 3.125, 1);
     sprite.position.copy(meter.position).add(this.markerOffset);
     sprite.userData = { meterId: meter.id, texture };
     return sprite;
   }
 
-  createTextSprite(text: string, color: string = "#ffffff"): THREE.Sprite {
+  createTextSprite(text: string, color: string = "#fffff"): THREE.Sprite {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d")!;
     canvas.width = 256;

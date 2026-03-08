@@ -230,12 +230,16 @@ export class LiveIoTManager extends SimpleEventEmitter {
       this.triggerClustering();
     }
 
-    for (const [, data] of this.markerData) {
-      if (data.element) {
-        data.element.style.display = this.markersVisible ? "block" : "none";
-      }
-      if (data.line) {
-        data.line.visible = this.markersVisible;
+    if (this.markerMode === "sprite" && this.spriteGroup) {
+      this.spriteGroup.visible = this.markersVisible;
+    } else {
+      for (const [, data] of this.markerData) {
+        if (data.element) {
+          data.element.style.display = this.markersVisible ? "block" : "none";
+        }
+        if (data.line) {
+          data.line.visible = this.markersVisible;
+        }
       }
     }
   }
