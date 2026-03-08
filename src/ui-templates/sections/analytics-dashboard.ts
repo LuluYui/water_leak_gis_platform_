@@ -9,6 +9,7 @@ export interface AnalyticsManagerState {
 let _iotManager: LiveIoTManager;
 let _charts: { [key: string]: Chart } = {};
 let _globalHistory: { timestamp: number; totalFlow: number }[] = [];
+let _analyticsIntervalId: ReturnType<typeof setInterval> | null = null;
 
 function calculateGlobalAnalytics(
   meters: LiveFlowMeter[],
@@ -61,10 +62,14 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
 
   const running = _iotManager.isRunning();
   const currentInterval = _iotManager.getUpdateInterval();
-  if (running) {
-    setInterval(() => {
+
+  if (running && !_analyticsIntervalId) {
+    _analyticsIntervalId = setInterval(() => {
       update();
     }, currentInterval);
+  } else if (!running && _analyticsIntervalId) {
+    clearInterval(_analyticsIntervalId);
+    _analyticsIntervalId = null;
   }
 
   const isDark = document.documentElement.classList.contains("bim-ui-dark");
@@ -203,7 +208,7 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
 
         <div style="height: 350px;  flex-direction: column; align-items: center; justify-content: center; background: var(--bim-ui_bg-contrast-10); border-radius: 8px; border: 2px dashed var(--bim-ui_accent-base);">
           <bim-button label="Start Live Simulation" icon="mdi:play" @click=${() => {
-            _iotManager.setUpdateInterval(350);
+            _iotManager.setUpdateInterval(2000);
             _iotManager.startSimulation();
             update();
           }} style="font-size: 14px; padding: 10px 20px;"></bim-button>

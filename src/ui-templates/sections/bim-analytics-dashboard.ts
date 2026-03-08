@@ -16,6 +16,7 @@ let _iotManager: LiveIoTManager;
 let _selectedMeterId: string | null = null;
 let _refreshKey = 0;
 let _components: OBC.Components | null = null;
+let _bimAnalyticsIntervalId: ReturnType<typeof setInterval> | null = null;
 
 export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
   BimAnalyticsManagerState
@@ -25,10 +26,14 @@ export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
 
   const running = _iotManager.isRunning();
   const currentInterval = _iotManager.getUpdateInterval();
-  if (running) {
-    setInterval(() => {
+
+  if (running && !_bimAnalyticsIntervalId) {
+    _bimAnalyticsIntervalId = setInterval(() => {
       update();
     }, currentInterval);
+  } else if (!running && _bimAnalyticsIntervalId) {
+    clearInterval(_bimAnalyticsIntervalId);
+    _bimAnalyticsIntervalId = null;
   }
 
   if (state.components) {
@@ -208,7 +213,7 @@ export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
                 !running
                   ? BUI.html`
                 <bim-button label="Start Live Simulation" icon="mdi:play" @click=${() => {
-                  _iotManager.setUpdateInterval(350);
+                  _iotManager.setUpdateInterval(2000);
                   _iotManager.startSimulation();
                   update();
                 }} style="background: #4ade80; color: #000; font-size: 16px; padding: 12px 24px;"></bim-button>
