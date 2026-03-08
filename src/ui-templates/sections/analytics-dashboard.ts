@@ -9,7 +9,6 @@ export interface AnalyticsManagerState {
 let _iotManager: LiveIoTManager;
 let _charts: { [key: string]: Chart } = {};
 let _globalHistory: { timestamp: number; totalFlow: number }[] = [];
-let _simulationStarted = false;
 
 function calculateGlobalAnalytics(
   meters: LiveFlowMeter[],
@@ -59,8 +58,9 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
 
   const globalAnalytics = calculateGlobalAnalytics(meters, _iotManager);
 
+  const running = _iotManager.isRunning();
   // Auto-refresh every 5 seconds when simulation is running
-  if (_simulationStarted) {
+  if (running) {
     setInterval(() => {
       update();
     }, 5000);
@@ -152,7 +152,7 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
       </div>
 
       ${
-        !_simulationStarted
+        !running
           ? BUI.html`
       <!-- Hint for users -->
       `
@@ -194,7 +194,7 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
         </div>
         
         ${
-          !_simulationStarted
+          !running
             ? BUI.html`
                   <div style="font-size: 12px; color: var(--bim-ui_text-dim); background: rgba(59, 130, 246, 0.1); padding: 12px; border-radius: 8px; border: 1px dashed #60a5fa;">
         💡 <strong>Tip:</strong> Click "Start Live Sim" to begin the simulation. Watch the global flow trends update in real-time and observe the diurnal patterns in the charts below.
@@ -202,7 +202,6 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
 
         <div style="height: 350px;  flex-direction: column; align-items: center; justify-content: center; background: var(--bim-ui_bg-contrast-10); border-radius: 8px; border: 2px dashed var(--bim-ui_accent-base);">
           <bim-button label="Start Live Simulation (5s)" icon="mdi:play" @click=${() => {
-            _simulationStarted = true;
             _iotManager.setUpdateInterval(5000);
             _iotManager.startSimulation();
             update();
