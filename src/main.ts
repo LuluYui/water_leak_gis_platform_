@@ -16,7 +16,6 @@ import {
 
 const deviceCapabilities = detectDeviceCapabilities();
 const recommendedSettings = getRecommendedSettings(deviceCapabilities);
-console.log("[App] Recommended settings:", recommendedSettings);
 
 BUI.Manager.init();
 
@@ -292,14 +291,11 @@ app.layout = "App";
 (window as any).liveIoTManager = liveIoTManager;
 
 if (!recommendedSettings.enablePostProcessing && world.renderer) {
-  console.log("[App] Disabling post-processing for low-end device");
   const renderer = world.renderer as OBF.PostproductionRenderer;
   if (renderer.postproduction) {
     renderer.postproduction.enabled = false;
   }
 }
-
-console.log(`[App] Using ${liveIoTManager.getMarkerMode()} marker mode`);
 
 const loadInitialFragment = async () => {
   console.log("[App] Loading water_mains.frag...");

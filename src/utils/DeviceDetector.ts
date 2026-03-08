@@ -19,10 +19,6 @@ export function detectDeviceCapabilities(): DeviceCapabilities {
   const isLowCPU = cpuCores < 4;
   const isLowEnd = isLowMemory || isLowCPU;
 
-  console.log(
-    `[Performance] Device: ${cpuCores} cores, ~${Math.round(memoryMB / 1024)}GB RAM, Low-end: ${isLowEnd}`,
-  );
-
   return {
     isLowMemory,
     isLowCPU,

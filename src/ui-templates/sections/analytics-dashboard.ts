@@ -10,6 +10,7 @@ let _iotManager: LiveIoTManager;
 let _charts: { [key: string]: Chart } = {};
 let _globalHistory: { timestamp: number; totalFlow: number }[] = [];
 let _analyticsIntervalId: ReturnType<typeof setInterval> | null = null;
+let _lastRunningState = false;
 
 function calculateGlobalAnalytics(
   meters: LiveFlowMeter[],
@@ -72,13 +73,29 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
     _analyticsIntervalId = null;
   }
 
+  if (running !== _lastRunningState) {
+    _lastRunningState = running;
+    if (_charts["global-running"]) {
+      _charts["global-running"].destroy();
+      delete _charts["global-running"];
+    }
+    if (_charts["global"]) {
+      _charts["global"].destroy();
+      delete _charts["global"];
+    }
+  }
+
   const isDark = document.documentElement.classList.contains("bim-ui-dark");
   const titleColor = isDark ? "#4ade80" : "#6528d7";
 
   const initGlobalChart = (el: Element | undefined) => {
     const canvas = el as HTMLCanvasElement | null;
     if (!canvas) return;
-    if (_charts["global"]) _charts["global"].destroy();
+
+    const chartKey = running ? "global-running" : "global";
+    if (_charts[chartKey]) {
+      _charts[chartKey].destroy();
+    }
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -90,7 +107,7 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
     const gridColor = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)";
     const textColor = isDark ? "#9ca3af" : "#6b7280";
 
-    _charts["global"] = new Chart(canvas, {
+    _charts[chartKey] = new Chart(canvas, {
       type: "line",
       data: {
         labels: _globalHistory.map((h) =>

@@ -107,9 +107,6 @@ export class LiveIoTManager extends SimpleEventEmitter {
     const leak = this.leakConfig.find((l) => l.id === leakId);
     if (leak) {
       leak.isActive = isActive;
-      console.log(
-        `Leak ${leak.name} is now ${isActive ? "ACTIVE" : "INACTIVE"}`,
-      );
     }
   }
 

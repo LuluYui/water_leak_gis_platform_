@@ -26,11 +26,8 @@ export const getFlowMetersCoordinates = async (
 
   const result = await finderQuery.test();
   if (!result || Object.keys(result).length === 0) {
-    console.log("No flow meters found in model");
     return flowMeters;
   }
-
-  console.log("Flow meters found:", result);
 
   for (const [modelId, localIds] of Object.entries(result)) {
     const model = fragments.list.get(modelId);
@@ -40,7 +37,6 @@ export const getFlowMetersCoordinates = async (
     }
 
     const localIdArray = [...localIds];
-    console.log(`Model ${modelId}: Found ${localIdArray.length} flow meters`);
 
     const boxes = await model.getBoxes(localIdArray);
 
@@ -69,8 +65,6 @@ export const getFlowMetersCoordinates = async (
       flowMeters.push(flowMeter);
     }
   }
-
-  console.log("Flow meters with coordinates:", flowMeters);
 
   return flowMeters;
 };
