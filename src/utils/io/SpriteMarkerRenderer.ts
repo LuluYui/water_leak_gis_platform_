@@ -4,6 +4,18 @@ import { MARKER_CONFIG, SIMULATION_CONFIG } from "../../config/appConfig";
 
 export class SpriteMarkerRenderer {
   private markerOffset: THREE.Vector3;
+  private textureCache: Map<
+    string,
+    {
+      texture: THREE.CanvasTexture;
+      flowRate: number;
+      flowPressure: number;
+      timestamp: number;
+    }
+  > = new Map();
+  private readonly CACHE_TTL_MS = 2000;
+  private readonly FLOW_CHANGE_THRESHOLD = 5;
+  private readonly PRESSURE_CHANGE_THRESHOLD = 0.2;
 
   constructor() {
     this.markerOffset = SIMULATION_CONFIG.markerOffset;
@@ -148,11 +160,32 @@ export class SpriteMarkerRenderer {
   }
 
   updateSpriteTexture(sprite: THREE.Sprite, meter: LiveFlowMeter): void {
+    const cached = this.textureCache.get(meter.id);
+    const now = Date.now();
+
+    const hasSignificantChange =
+      !cached ||
+      Math.abs(meter.flowRate - cached.flowRate) > this.FLOW_CHANGE_THRESHOLD ||
+      Math.abs(meter.flowPressure - cached.flowPressure) >
+        this.PRESSURE_CHANGE_THRESHOLD ||
+      now - cached.timestamp > this.CACHE_TTL_MS;
+
+    if (!hasSignificantChange) {
+      return;
+    }
+
     const oldTexture = sprite.material.map;
     const newTexture = this.createMarkerTexture(meter);
     (sprite.material as THREE.SpriteMaterial).map = newTexture;
     (sprite.material as THREE.SpriteMaterial).needsUpdate = true;
     if (oldTexture) oldTexture.dispose();
+
+    this.textureCache.set(meter.id, {
+      texture: newTexture,
+      flowRate: meter.flowRate,
+      flowPressure: meter.flowPressure,
+      timestamp: now,
+    });
   }
 
   createLinkageLine(

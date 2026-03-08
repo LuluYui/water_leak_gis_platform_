@@ -192,7 +192,40 @@ export class LiveIoTManager extends SimpleEventEmitter {
   }
 
   startSimulation(): void {
-    this.simulationController.start(() => this.updateSimulationData());
+    const meters = Array.from(this.flowMeters.values());
+    this.simulationController.setMeterData(
+      meters,
+      this.meterLeakMap,
+      this.maxHistoryPoints,
+      this.historicalData,
+    );
+    this.simulationController.start((updatedMeters, historicalData) => {
+      this.historicalData = historicalData;
+      this.updateMetersFromWorker(updatedMeters);
+    });
+  }
+
+  private updateMetersFromWorker(updatedMeters: LiveFlowMeter[]): void {
+    if (!this.world) return;
+
+    for (const meter of updatedMeters) {
+      this.flowMeters.set(meter.id, meter);
+      this.updateMarker(meter.id);
+      this.emit("flowMeterUpdate", meter);
+    }
+
+    if ("requestIdleCallback" in window) {
+      requestIdleCallback(
+        () => {
+          this.emit("updateCycleComplete", updatedMeters);
+        },
+        { timeout: 1000 },
+      );
+    } else {
+      setTimeout(() => {
+        this.emit("updateCycleComplete", updatedMeters);
+      }, 0);
+    }
   }
 
   stopSimulation(): void {
@@ -438,25 +471,6 @@ export class LiveIoTManager extends SimpleEventEmitter {
     this.lastMarkerUpdate.clear();
   }
 
-  private updateSimulationData(): void {
-    if (!this.world) return;
-
-    for (const [id, meter] of this.flowMeters) {
-      const leaks = this.meterLeakMap.get(id) || [];
-
-      this.simulationController.updateMeterData(
-        meter,
-        leaks,
-        this.maxHistoryPoints,
-        this.historicalData,
-      );
-
-      this.updateMarker(id);
-      this.emit("flowMeterUpdate", meter);
-    }
-    this.emit("updateCycleComplete", Array.from(this.flowMeters.values()));
-  }
-
   createMarkers(): void {
     if (!this.world) return;
 
@@ -576,9 +590,7 @@ export class LiveIoTManager extends SimpleEventEmitter {
     const sprite = markerData.sprite;
     if (sprite && sprite.position) {
       this.spriteRenderer.updateSpritePosition(sprite, meter);
-      if (this.shouldUpdateMarker(_id)) {
-        this.spriteRenderer.updateSpriteTexture(sprite, meter);
-      }
+      this.spriteRenderer.updateSpriteTexture(sprite, meter);
     }
     if (markerData.line) {
       const markerPosition = meter.position
