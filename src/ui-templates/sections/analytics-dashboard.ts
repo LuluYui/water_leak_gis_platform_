@@ -226,9 +226,9 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
       </div>
 
       <!-- Diurnal Data Table -->
-      <div style="background: var(--bim-ui_bg-card); border: 1px solid var(--bim-ui_bg-contrast-40); border-radius: 16px; padding: 24px; margin-bottom: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); min-height: 200px;">
+      <div style="background: var(--bim-ui_bg-card); border: 1px solid var(--bim-ui_bg-contrast-40); border-radius: 16px; padding: 24px; margin-bottom: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
         <h4 style="margin: 0 0 20px 0; color: var(--bim-ui_text-dim); font-weight: 500; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px;">Summed Diurnal Flow Data</h4>
-        <div style="overflow-x: auto;">
+        <div style="max-height: 200px; overflow-y: auto;">
           <table style="width: 100%; text-align: left; border-collapse: separate; border-spacing: 0 8px; font-size: 13px; color: var(--bim-ui_text-normal);">
             <thead>
               <tr style="color: var(--bim-ui_text-dim); text-transform: uppercase; font-size: 11px; letter-spacing: 1px;">
