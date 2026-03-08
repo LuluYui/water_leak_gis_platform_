@@ -235,13 +235,16 @@ const [contentGrid] = BUI.Component.create<
 });
 
 const setInitialLayout = () => {
+  const layouts = contentGrid.layouts;
+  if (!layouts || Object.keys(layouts).length === 0) {
+    setTimeout(setInitialLayout, 100);
+    return;
+  }
   if (window.location.hash) {
     const hash = window.location.hash.slice(
       1,
     ) as TEMPLATES.ContentGridLayouts[number];
-    contentGrid.layout = Object.keys(contentGrid.layouts).includes(hash)
-      ? hash
-      : "Viewer";
+    contentGrid.layout = Object.keys(layouts).includes(hash) ? hash : "Viewer";
   } else {
     window.location.hash = "Viewer";
     contentGrid.layout = "Viewer";
@@ -265,6 +268,7 @@ const app = document.getElementById("app") as BUI.Grid<
   AppLayouts,
   AppGridElements
 >;
+
 app.elements = {
   sidebar: {
     template: TEMPLATES.gridSidebarTemplate,
@@ -275,6 +279,7 @@ app.elements = {
         Viewer: appIcons.MODEL,
         "DMA/PMA Dashboard": appIcons.CHART,
         BimAnalytics: appIcons.TASK,
+        Tools: appIcons.LAYOUT,
       },
     },
   },
@@ -283,6 +288,26 @@ app.elements = {
 
 app.layouts = { App: { template: `"sidebar contentGrid" 1fr /auto 1fr` } };
 app.layout = "App";
+
+const updateLayoutsForViewport = () => {
+  const isMobile = window.innerWidth < 768;
+  const grid = document.getElementById("app-content") as any;
+
+  if (grid && grid.layouts) {
+    const currentLayout = grid.layout;
+    const hasTools = currentLayout === "Tools";
+
+    if (isMobile && !grid.layouts.Tools) {
+      // Switching to mobile - layouts already have Tools
+    } else if (!isMobile && hasTools) {
+      // Switching to desktop while on Tools - switch to Viewer
+      grid.layout = "Viewer";
+    }
+  }
+};
+
+window.addEventListener("resize", updateLayoutsForViewport);
+updateLayoutsForViewport();
 
 (window as any).components = components;
 (window as any).world = world;

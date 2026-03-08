@@ -22,10 +22,13 @@ export const gridSidebarTemplate: BUI.StatefullComponent<GridSidebarState> = (
     update({ compact: !state.compact });
   };
 
+  const layouts = grid.layouts || {};
+  const layoutKeys = Object.keys(layouts);
+
   return BUI.html`
   <div style="display: flex; flex-direction: column; justify-content: space-between; align-items: center; border-right: 1px solid var(--bim-ui_bg-contrast-40); padding: 0.5rem;">
     <div class="sidebar">
-      ${Object.keys(grid.layouts).map((layout) => {
+      ${layoutKeys.map((layout) => {
         const layoutIcon = layoutIcons[layout];
         const icon = !layoutIcon ? appIcons.LAYOUT : layoutIcon;
         return BUI.html`
