@@ -126,8 +126,8 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
             data: _globalHistory.map((h) => h.totalFlow),
             borderColor: "#60a5fa",
             backgroundColor: gradient,
-            borderWidth: 3,
-            pointRadius: 2,
+            borderWidth: 2,
+            pointRadius: 1.5,
             pointBackgroundColor: "#60a5fa",
             tension: 0.4,
             fill: true,
@@ -138,16 +138,23 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
         responsive: true,
         maintainAspectRatio: false,
         animation: { duration: 0 },
+        devicePixelRatio: window.devicePixelRatio,
         scales: {
           x: {
             grid: { display: false },
-            ticks: { color: textColor, maxRotation: 0, autoSkip: true },
+            ticks: {
+              color: textColor,
+              maxRotation: 0,
+              autoSkip: true,
+              maxTicksLimit: 10,
+              font: { size: 10 },
+            },
           },
           y: {
             type: "linear",
             display: true,
             grid: { color: gridColor },
-            ticks: { color: textColor },
+            ticks: { color: textColor, font: { size: 10 } },
             beginAtZero: true,
           },
         },
@@ -186,35 +193,35 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
       }
       
       <!-- Global Summary Stats -->
-      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
-        <div style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); border-radius: 16px; padding: 20px 20px 36px 20px; color: white; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255,255,255,0.05);">
-          <div style="font-size: 11px; opacity: 0.7; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px;">Global Flow Rate</div>
-          <div style="font-size: 36px; font-weight: 600; letter-spacing: -1px;">${globalAnalytics.totalFlowRate.toFixed(1)} <span style="font-size: 16px; font-weight: 400; opacity: 0.7;">L/min</span></div>
-          <div style="margin-top: 16px; display: flex; align-items: center; gap: 8px;">
-            <div style="width: 8px; height: 8px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 12px #4ade80; animation: pulse 2s infinite;"></div>
-            <span style="font-size: 12px; color: rgba(255,255,255,0.8);">Meters Active: ${globalAnalytics.onlineCount}/${globalAnalytics.totalCount}</span>
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; min-width: 0;">
+        <div style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); border-radius: 12px; padding: 16px; color: white; box-shadow: 0 4px 12px rgba(0,0,0,0.3); min-width: 0;">
+          <div style="font-size: 10px; opacity: 0.7; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Global Flow Rate</div>
+          <div style="font-size: 24px; font-weight: 600; letter-spacing: -1px;">${globalAnalytics.totalFlowRate.toFixed(1)} <span style="font-size: 12px; font-weight: 400; opacity: 0.7;">L/m</span></div>
+          <div style="margin-top: 8px; display: flex; align-items: center; gap: 6px;">
+            <div style="width: 6px; height: 6px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 8px #4ade80;"></div>
+            <span style="font-size: 10px; color: rgba(255,255,255,0.8);">${globalAnalytics.onlineCount}/${globalAnalytics.totalCount}</span>
           </div>
         </div>
         
-        <div style="background: linear-gradient(135deg, #4c1d95 0%, #5b21b6 100%); border-radius: 16px; padding: 20px 20px 36px 20px; color: white; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255,255,255,0.05);">
-          <div style="font-size: 11px; opacity: 0.7; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px;">Cumulative Volume</div>
-          <div style="font-size: 36px; font-weight: 600; letter-spacing: -1px;">${globalAnalytics.totalCumulativeVolume.toFixed(0)} <span style="font-size: 16px; font-weight: 400; opacity: 0.7;">Liters</span></div>
-          <div style="margin-top: 16px; font-size: 12px; color: rgba(255,255,255,0.6);">Summed Network Throughput</div>
+        <div style="background: linear-gradient(135deg, #4c1d95 0%, #5b21b6 100%); border-radius: 12px; padding: 16px; color: white; box-shadow: 0 4px 12px rgba(0,0,0,0.3); min-width: 0;">
+          <div style="font-size: 10px; opacity: 0.7; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Cumulative Vol</div>
+          <div style="font-size: 24px; font-weight: 600; letter-spacing: -1px;">${globalAnalytics.totalCumulativeVolume.toFixed(0)} <span style="font-size: 12px; font-weight: 400; opacity: 0.7;">L</span></div>
+          <div style="margin-top: 8px; font-size: 10px; color: rgba(255,255,255,0.6);">Summed Throughput</div>
         </div>
 
-        <div style="background: var(--bim-ui_bg-card); border: 1px solid var(--bim-ui_bg-contrast-40); border-radius: 16px; padding: 20px 20px 36px 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
-          <div style="font-size: 11px; color: var(--bim-ui_text-dim); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px;">System Status</div>
-          <div style="margin-top: 8px; display: inline-flex; align-items: center; gap: 8px; background: ${isDark ? "rgba(74, 222, 128, 0.12)" : "rgba(22, 128, 61, 0.1)"}; border: 1px solid ${isDark ? "rgba(74, 222, 128, 0.3)" : "rgba(22, 128, 61, 0.25)"}; padding: 6px 14px; border-radius: 20px;">
-            <div style="width: 8px; height: 8px; border-radius: 50%; background: ${isDark ? "#4ade80" : "#15803d"}; box-shadow: 0 0 10px ${isDark ? "#4ade80" : "#22c55e"};"></div>
-            <span style="font-size: 14px; font-weight: 600; color: ${isDark ? "#4ade80" : "#15803d"};">Healthy</span>
+        <div style="background: var(--bim-ui_bg-card); border: 1px solid var(--bim-ui_bg-contrast-40); border-radius: 12px; padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); min-width: 0;">
+          <div style="font-size: 10px; color: var(--bim-ui_text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">System Status</div>
+          <div style="margin-top: 4px; display: inline-flex; align-items: center; gap: 6px; background: ${isDark ? "rgba(74, 222, 128, 0.12)" : "rgba(22, 128, 61, 0.1)"}; border: 1px solid ${isDark ? "rgba(74, 222, 128, 0.3)" : "rgba(22, 128, 61, 0.25)"}; padding: 4px 10px; border-radius: 12px;">
+            <div style="width: 6px; height: 6px; border-radius: 50%; background: ${isDark ? "#4ade80" : "#15803d"};"></div>
+            <span style="font-size: 12px; font-weight: 600; color: ${isDark ? "#4ade80" : "#15803d"};">Healthy</span>
           </div>
-          <div style="margin-top: 16px; font-size: 12px; color: var(--bim-ui_text-dim);">Leak Detection Heuristics: Active</div>
+          <div style="margin-top: 8px; font-size: 10px; color: var(--bim-ui_text-dim);">Leak Detection: Active</div>
         </div>
       </div>
 
       <!-- Main Global Chart -->
-      <div style="background: var(--bim-ui_bg-card); border: 1px solid var(--bim-ui_bg-contrast-40); border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <div style="background: var(--bim-ui_bg-card); border: 1px solid var(--bim-ui_bg-contrast-40); border-radius: 16px; padding: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); min-width: 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
           <h4 style="margin: 0; color: var(--bim-ui_text-dim); font-weight: 500; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px;">Network Diurnal Trend (L/min)</h4>
           <span style="font-size: 11px; color: #60a5fa; background: rgba(96,165,250,0.1); padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(96,165,250,0.2); font-weight: 500;">Global Aggregation</span>
         </div>
@@ -226,7 +233,7 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
         💡 <strong>Tip:</strong> Click "Start Live Sim" to begin the simulation. Watch the global flow trends update in real-time and observe the diurnal patterns in the charts below.
       </div>
 
-        <div style="height: 350px;  flex-direction: column; align-items: center; justify-content: center; background: var(--bim-ui_bg-contrast-10); border-radius: 8px; border: 2px dashed var(--bim-ui_accent-base);">
+        <div style="height: 250px; min-height: 200px; flex-direction: column; align-items: center; justify-content: center; background: var(--bim-ui_bg-contrast-10); border-radius: 8px; border: 2px dashed var(--bim-ui_accent-base);">
           <bim-button label="Start Live Simulation" icon="mdi:play" @click=${() => {
             _iotManager.setUpdateInterval(2000);
             _iotManager.startSimulation();
@@ -235,7 +242,7 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
         </div>
         `
             : BUI.html`
-        <div style="height: 350px; position: relative;">
+        <div style="height: 250px; min-height: 180px; position: relative; width: 100%;">
           <canvas ${BUI.ref(initGlobalChart)}></canvas>
         </div>
         `
