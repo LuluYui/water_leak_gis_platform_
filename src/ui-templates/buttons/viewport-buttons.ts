@@ -3,12 +3,18 @@ import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
 import { appIcons, tooltips } from "../../globals";
 import { liveIoTManager } from "../../utils/LiveIoTManager";
+import {
+  detectDeviceCapabilities,
+  getRecommendedSettings,
+} from "../../utils/DeviceDetector";
 
 export interface ViewportButtonsState {
   components: OBC.Components;
 }
 
-const MIN_INTERVAL_MS = 100;
+const deviceCapabilities = detectDeviceCapabilities();
+const recommendedSettings = getRecommendedSettings(deviceCapabilities);
+const MIN_INTERVAL_MS = recommendedSettings.minSimulationIntervalMs;
 const MAX_INTERVAL_MS = 5000;
 const SLIDER_MAX = 100;
 
@@ -163,7 +169,7 @@ export const viewportButtonsTemplate: BUI.StatefullComponent<
               >
               <div style="display: flex; justify-content: space-between; font-size: 10px; color: #888;">
                 <span>5s</span>
-                <span>100ms</span>
+                <span>${MIN_INTERVAL_MS}ms</span>
               </div>
             </div>
           </bim-context-menu>

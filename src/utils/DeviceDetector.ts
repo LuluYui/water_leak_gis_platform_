@@ -38,5 +38,6 @@ export function getRecommendedSettings(capabilities: DeviceCapabilities) {
     enableFrustumCulling: true,
     enableOptimizations: capabilities.isLowEnd,
     markerMode: capabilities.isLowEnd ? "sprite" : "sprite",
+    minSimulationIntervalMs: capabilities.isLowEnd ? 300 : 500,
   };
 }
