@@ -117,9 +117,16 @@ export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
     table.data = [...history]
       .reverse()
       .slice(0, 10)
-      .map((h, i) => ({
+      .map((h) => ({
         data: {
-          Time: `-${i}s`,
+          Time: new Date(h.timestamp).toLocaleString([], {
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: true,
+          }),
           "Flow Rate": h.flowRate.toFixed(2),
           Pressure: h.flowPressure.toFixed(2),
         },
