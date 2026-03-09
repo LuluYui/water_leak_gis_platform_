@@ -378,6 +378,7 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
   };
 
   let resizeTimeout: ReturnType<typeof setTimeout>;
+  let isUpdatingLayout = false;
 
   const handleResize = () => {
     clearTimeout(resizeTimeout);
@@ -387,16 +388,24 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
         ContentGridElements
       > | null;
 
-      // Destroy charts before layout switch so they get recreated with new canvas
-      const charts = (window as any)._analyticsCharts;
-      if (charts && charts["global-running"]) {
-        charts["global-running"].destroy();
-        delete charts["global-running"];
+      if (!grid) return;
+
+      // Prevent concurrent layout updates
+      if (isUpdatingLayout) return;
+      isUpdatingLayout = true;
+
+      try {
+        // Destroy charts before layout switch so they get recreated with new canvas
+        const charts = (window as any)._analyticsCharts;
+        if (charts && charts["global-running"]) {
+          charts["global-running"].destroy();
+          delete charts["global-running"];
+        }
+
+        updateMobilePanel();
+      } finally {
+        isUpdatingLayout = false;
       }
-
-      updateMobilePanel();
-
-      grid?.dispatchEvent(new CustomEvent("layoutchange"));
     }, 150);
   };
 
