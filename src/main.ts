@@ -295,30 +295,6 @@ app.layouts = { App: { template: `"sidebar contentGrid" 1fr /auto 1fr` } };
 app.layout = "App";
 
 const updateLayoutsForViewport = () => {
-  const isMobile = window.innerWidth < 768;
-  const grid = document.getElementById("app-content") as any;
-
-  if (grid && grid.layouts) {
-    const currentLayout = grid.layout;
-    const isMobileLayout = currentLayout?.endsWith("_m");
-
-    if (isMobile && !isMobileLayout) {
-      // Desktop -> Mobile: add _m suffix
-      const newLayout = currentLayout + "_m";
-      if (grid.layouts[newLayout]) {
-        grid.layout = newLayout;
-      }
-    } else if (!isMobile && isMobileLayout) {
-      // Mobile -> Desktop: remove _m suffix
-      let newLayout = currentLayout.replace("_m", "");
-      // Fallback to Viewer if desktop layout doesn't exist (e.g., Tools_m -> Tools)
-      if (!grid.layouts[newLayout]) {
-        newLayout = "Viewer";
-      }
-      grid.layout = newLayout;
-    }
-  }
-
   updateToolbarVertical();
 };
 
