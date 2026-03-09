@@ -128,35 +128,41 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
 
     if (!grid) return;
 
-    const mobileLayouts = getMobileLayouts();
-    const desktopLayouts = getDesktopLayouts();
-
     // Handle layout switch when crossing breakpoint
     const currentLayout = grid.layout as string;
-    let needsLayoutSwitch = false;
-    let newLayout: ContentGridLayouts[number] =
-      currentLayout as ContentGridLayouts[number];
 
     const currentLayoutInMobile = currentLayout.endsWith("_m");
     const crossingBreakpoint = isMobile !== currentLayoutInMobile;
 
     if (crossingBreakpoint) {
-      needsLayoutSwitch = true;
       if (isMobile) {
         // Desktop -> Mobile: add _m suffix
-        newLayout = (currentLayout + "_m") as ContentGridLayouts[number];
+        grid.layouts = getMobileLayouts() as any;
+        const newLayout = (currentLayout + "_m") as ContentGridLayouts[number];
+        // Only switch if the mobile layout exists
+        if (newLayout in grid.layouts) {
+          grid.layout = newLayout;
+        } else {
+          grid.layout = "Viewer_m";
+        }
       } else {
         // Mobile -> Desktop: remove _m suffix
-        const desktopLayout = currentLayout.replace("_m", "");
-        // Check if desktop layout exists, otherwise fallback to Viewer
-        if (desktopLayout in desktopLayouts) {
-          newLayout = desktopLayout as ContentGridLayouts[number];
+        grid.layouts = getDesktopLayouts() as any;
+        const desktopLayout = currentLayout.replace(
+          "_m",
+          "",
+        ) as ContentGridLayouts[number];
+        // Only switch if desktop layout exists, otherwise fallback to Viewer
+        if (desktopLayout in grid.layouts) {
+          grid.layout = desktopLayout;
         } else {
-          newLayout = "Viewer";
+          grid.layout = "Viewer";
         }
       }
+      return;
     }
 
+    // No breakpoint crossing - just update layouts without switching
     if (isMobile) {
       if (resizer) {
         resizer.style.display = rightPanelOpen ? "block" : "none";
@@ -164,7 +170,7 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
       if (toggleBtn) {
         toggleBtn.style.display = "flex";
       }
-      grid.layouts = mobileLayouts as any;
+      grid.layouts = getMobileLayouts() as any;
       if (rightPanel) {
         if (rightPanelOpen) {
           rightPanel.classList.add("mobile-panel-open");
@@ -181,15 +187,10 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
       if (toggleBtn) {
         toggleBtn.style.display = "none";
       }
-      grid.layouts = desktopLayouts as any;
+      grid.layouts = getDesktopLayouts() as any;
       if (rightPanel) {
         rightPanel.classList.remove("mobile-panel-open");
       }
-    }
-
-    // Actually switch the layout if needed
-    if (needsLayoutSwitch) {
-      grid.layout = newLayout;
     }
   };
 
