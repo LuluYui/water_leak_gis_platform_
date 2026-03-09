@@ -92,7 +92,28 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
     const canvas = el as HTMLCanvasElement | null;
     if (!canvas) return;
 
-    const chartKey = running ? "global-running" : "global";
+    const chartKey = "global-running";
+
+    // If chart already exists and canvas is the same, just update data
+    if (_charts[chartKey] && _charts[chartKey].canvas === canvas) {
+      _charts[chartKey].data.labels = _globalHistory.map((h) =>
+        new Date(h.timestamp).toLocaleString([], {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true,
+        }),
+      );
+      _charts[chartKey].data.datasets[0].data = _globalHistory.map(
+        (h) => h.totalFlow,
+      );
+      _charts[chartKey].update();
+      return;
+    }
+
+    // Destroy old chart if exists and canvas is different
     if (_charts[chartKey]) {
       _charts[chartKey].destroy();
     }
