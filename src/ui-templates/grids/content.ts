@@ -58,7 +58,6 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
   let startX = 0;
   let startWidth = 0;
   let currentLayout: ContentGridLayouts[number] = "Viewer";
-  let rightPanelOpen = false;
 
   const defaultWidths: Record<ContentGridLayouts[number], number> = {
     Viewer: 25,
@@ -67,8 +66,21 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
     Tools: 60,
   };
 
+  const getRightPanelOpen = () => {
+    const grid = document.getElementById(state.id);
+    return grid?.dataset.rightPanelOpen === "true";
+  };
+
+  const setRightPanelOpen = (open: boolean) => {
+    const grid = document.getElementById(state.id);
+    if (grid) {
+      grid.dataset.rightPanelOpen = open ? "true" : "false";
+    }
+  };
+
   const updateMobilePanel = () => {
     const isMobile = getMobileState();
+    const rightPanelOpen = getRightPanelOpen();
     const rightPanel = document.querySelector(
       '[name="combined"], [name="analytics"], [name="bimAnalytics"], [slot="combined"], [slot="analytics"], [slot="bimAnalytics"]',
     ) as HTMLElement;
@@ -159,7 +171,8 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
   };
 
   const toggleMobilePanel = () => {
-    rightPanelOpen = !rightPanelOpen;
+    const current = getRightPanelOpen();
+    setRightPanelOpen(!current);
     updateMobilePanel();
   };
 
