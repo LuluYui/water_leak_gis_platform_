@@ -152,6 +152,8 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
         }
       }
     } else {
+      // Reset panel state when switching to desktop
+      setRightPanelOpen(false);
       if (resizer) {
         resizer.style.display = "block";
       }
