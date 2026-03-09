@@ -12,6 +12,9 @@ let _globalHistory: { timestamp: number; totalFlow: number }[] = [];
 let _analyticsIntervalId: ReturnType<typeof setInterval> | null = null;
 let _lastRunningState = false;
 
+// Expose charts to window for external access (e.g., resize handler)
+(window as any)._analyticsCharts = _charts;
+
 function calculateGlobalAnalytics(
   meters: LiveFlowMeter[],
   iotManager: LiveIoTManager,

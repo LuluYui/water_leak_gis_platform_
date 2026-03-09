@@ -386,10 +386,17 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
         ContentGridElements
       > | null;
 
+      // Destroy charts before layout switch so they get recreated with new canvas
+      const charts = (window as any)._analyticsCharts;
+      if (charts && charts["global-running"]) {
+        charts["global-running"].destroy();
+        delete charts["global-running"];
+      }
+
       updateMobilePanel();
 
       grid?.dispatchEvent(new CustomEvent("layoutchange"));
-    }, 10);
+    }, 150);
   };
 
   if (!(window as any).__contentGridResizeListenerAdded) {
