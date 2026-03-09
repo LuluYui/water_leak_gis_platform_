@@ -136,17 +136,17 @@ export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
 
   return BUI.html`
     <bim-panel>
-      <bim-panel-section label="Water Leak Analytics (Native UI)" icon=${appIcons.CHART}>
+      <bim-panel-section label="Water Leak Analytics" icon=${appIcons.CHART}>
         
         <!-- Active Meter Indicator - Always Visible -->
-        <div style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); border-radius: 8px; padding: 12px; margin-bottom: 12px; color: white; text-align: center; border: 1px solid #60a5fa; flex-shrink: 0;">
-          <div style="font-size: 11px; opacity: 0.8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Active Flow Meter</div>
-          <div style="font-size: 16px; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">
+        <div style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); border-radius: 6px; padding: 8px; margin-bottom: 8px; color: white; text-align: center; border: 1px solid #60a5fa; flex-shrink: 0;">
+          <div style="font-size: 9px; opacity: 0.8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px;">Active Flow Meter</div>
+          <div style="font-size: 12px; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">
             ${selectedMeter ? `${selectedMeter.name} (${selectedMeter.id})` : "No Selection"}
           </div>
         </div>
 
-        <bim-dropdown @change=${onMeterChange} style="margin-bottom: 8px; flex-shrink: 0;">
+        <bim-dropdown @change=${onMeterChange} style="margin-bottom: 6px; flex-shrink: 0;">
           <bim-option label="Select Flowmeter" value="" disabled></bim-option>
           ${meters.map(
             (m) => BUI.html`
@@ -173,32 +173,32 @@ export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
             }
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 10px 12px;">
-            <div style="background: var(--bim-ui_bg-contrast-20); padding: 16px; border-radius: 8px; text-align: center; border: 1px solid var(--bim-ui_bg-contrast-40);">
-              <div style="font-size: 14px; color: var(--bim-ui_text-dim); font-weight: 600; margin-bottom: 8px;">Min Night Flow</div>
-              <div style="font-size: 24px; font-weight: bold; color: ${analytics.mnf > analytics.avg * 0.7 ? "#f87171" : "#60a5fa"};">
-                ${analytics.mnf.toFixed(1)} <span style="font-size: 12px;">L/min</span>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 10px 8px;">
+            <div style="background: var(--bim-ui_bg-contrast-20); padding: 12px; border-radius: 6px; text-align: center; border: 1px solid var(--bim-ui_bg-contrast-40);">
+              <div style="font-size: 10px; color: var(--bim-ui_text-dim); font-weight: 600; margin-bottom: 4px;">Min Night Flow</div>
+              <div style="font-size: 18px; font-weight: bold; color: ${analytics.mnf > analytics.avg * 0.7 ? "#f87171" : "#60a5fa"};">
+                ${analytics.mnf.toFixed(1)} <span style="font-size: 10px;">L/m</span>
               </div>
             </div>
-            <div style="background: var(--bim-ui_bg-contrast-20); padding: 16px; border-radius: 8px; text-align: center; border: 1px solid var(--bim-ui_bg-contrast-40);">
-              <div style="font-size: 14px; color: var(--bim-ui_text-dim); font-weight: 600; margin-bottom: 8px;">Avg Flow</div>
-              <div style="font-size: 24px; font-weight: bold; color: var(--bim-ui_text-normal);">
-                ${analytics.avg.toFixed(1)} <span style="font-size: 12px;">L/min</span>
+            <div style="background: var(--bim-ui_bg-contrast-20); padding: 12px; border-radius: 6px; text-align: center; border: 1px solid var(--bim-ui_bg-contrast-40);">
+              <div style="font-size: 10px; color: var(--bim-ui_text-dim); font-weight: 600; margin-bottom: 4px;">Avg Flow</div>
+              <div style="font-size: 18px; font-weight: bold; color: var(--bim-ui_text-normal);">
+                ${analytics.avg.toFixed(1)} <span style="font-size: 10px;">L/m</span>
               </div>
             </div>
         </div>
 
         <!-- Charts in same row -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 10px 10px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 10px 8px;">
             <div>
-              <div style="font-size: 14px; color: var(--bim-ui_text-dim); margin-bottom: 8px; font-weight: 600;">Flow Rate (L/min)</div>
-              <div style="background: var(--bim-ui_bg-contrast-20); border-radius: 8px; padding: 8px; min-height: 200px;">
+              <div style="font-size: 11px; color: var(--bim-ui_text-dim); margin-bottom: 4px; font-weight: 600;">Flow Rate</div>
+              <div style="background: var(--bim-ui_bg-contrast-20); border-radius: 6px; padding: 6px; min-height: 150px;">
                 ${createLargeChart(history, "flowRate")}
               </div>
             </div>
             <div>
-              <div style="font-size: 14px; color: var(--bim-ui_text-dim); margin-bottom: 8px; font-weight: 600;">Pressure (bar)</div>
-              <div style="background: var(--bim-ui_bg-contrast-20); border-radius: 8px; padding: 8px; min-height: 200px;">
+              <div style="font-size: 11px; color: var(--bim-ui_text-dim); margin-bottom: 4px; font-weight: 600;">Pressure</div>
+              <div style="background: var(--bim-ui_bg-contrast-20); border-radius: 6px; padding: 6px; min-height: 150px;">
                 ${createLargeChart(history, "flowPressure")}
               </div>
             </div>

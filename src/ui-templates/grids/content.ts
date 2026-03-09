@@ -35,6 +35,10 @@ export type ContentGridLayouts = [
   "DMA/PMA Dashboard",
   "BimAnalytics",
   "Tools",
+  "Viewer_m",
+  "DMA/PMA Dashboard_m",
+  "BimAnalytics_m",
+  "Tools_m",
 ];
 
 export interface ContentGridState {
@@ -47,6 +51,33 @@ export interface ContentGridState {
 const MOBILE_BREAKPOINT = 768;
 
 const getMobileState = () => window.innerWidth < MOBILE_BREAKPOINT;
+
+const getMobileLayouts = () => ({
+  Viewer_m: {
+    template: `"viewer" 1fr /1fr`,
+  },
+  "DMA/PMA Dashboard_m": {
+    template: `"analytics" 1fr /1fr`,
+  },
+  BimAnalytics_m: {
+    template: `"bimAnalytics" 1fr /1fr`,
+  },
+  Tools_m: {
+    template: `"combined" 1fr /1fr`,
+  },
+});
+
+const getDesktopLayouts = () => ({
+  Viewer: {
+    template: `"viewer resizer combined" 1fr /1fr 4px 25rem`,
+  },
+  "DMA/PMA Dashboard": {
+    template: `"viewer resizer analytics" 1fr /1fr 4px 45rem`,
+  },
+  BimAnalytics: {
+    template: `"viewer resizer bimAnalytics" 1fr /1fr 4px 45rem`,
+  },
+});
 
 export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
   state,
@@ -61,9 +92,13 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
 
   const defaultWidths: Record<ContentGridLayouts[number], number> = {
     Viewer: 25,
-    "DMA/PMA Dashboard": 60,
-    BimAnalytics: 60,
+    "DMA/PMA Dashboard": 45,
+    BimAnalytics: 45,
     Tools: 60,
+    Viewer_m: 25,
+    "DMA/PMA Dashboard_m": 45,
+    BimAnalytics_m: 45,
+    Tools_m: 60,
   };
 
   const getRightPanelOpen = () => {
@@ -93,32 +128,8 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
 
     if (!grid) return;
 
-    const mobileLayouts = {
-      Viewer: {
-        template: `"viewer" 1fr /1fr`,
-      },
-      "DMA/PMA Dashboard": {
-        template: `"analytics" 1fr /1fr`,
-      },
-      BimAnalytics: {
-        template: `"bimAnalytics" 1fr /1fr`,
-      },
-      Tools: {
-        template: `"combined" 1fr /1fr`,
-      },
-    };
-
-    const desktopLayouts = {
-      Viewer: {
-        template: `"viewer resizer combined" 1fr /1fr 4px 25rem`,
-      },
-      "DMA/PMA Dashboard": {
-        template: `"viewer resizer analytics" 1fr /1fr 4px 60rem`,
-      },
-      BimAnalytics: {
-        template: `"viewer resizer bimAnalytics" 1fr /1fr 4px 60rem`,
-      },
-    };
+    const mobileLayouts = getMobileLayouts();
+    const desktopLayouts = getDesktopLayouts();
 
     // Handle layout switch when crossing breakpoint
     const currentLayout = grid.layout as string;
@@ -126,9 +137,24 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
     let newLayout: ContentGridLayouts[number] =
       currentLayout as ContentGridLayouts[number];
 
-    if (!isMobile && currentLayout === "Tools") {
-      newLayout = "Viewer";
+    const currentLayoutInMobile = currentLayout.endsWith("_m");
+    const crossingBreakpoint = isMobile !== currentLayoutInMobile;
+
+    if (crossingBreakpoint) {
       needsLayoutSwitch = true;
+      if (isMobile) {
+        // Desktop -> Mobile: add _m suffix
+        newLayout = (currentLayout + "_m") as ContentGridLayouts[number];
+      } else {
+        // Mobile -> Desktop: remove _m suffix
+        const desktopLayout = currentLayout.replace("_m", "");
+        // Check if desktop layout exists, otherwise fallback to Viewer
+        if (desktopLayout in desktopLayouts) {
+          newLayout = desktopLayout as ContentGridLayouts[number];
+        } else {
+          newLayout = "Viewer";
+        }
+      }
     }
 
     if (isMobile) {
@@ -138,12 +164,7 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
       if (toggleBtn) {
         toggleBtn.style.display = "flex";
       }
-      grid.layouts = mobileLayouts;
-      // If current layout doesn't exist in mobile layouts, switch to default
-      if (!mobileLayouts[currentLayout as keyof typeof mobileLayouts]) {
-        newLayout = "Viewer";
-        needsLayoutSwitch = true;
-      }
+      grid.layouts = mobileLayouts as any;
       if (rightPanel) {
         if (rightPanelOpen) {
           rightPanel.classList.add("mobile-panel-open");
@@ -166,7 +187,7 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
       }
     }
 
-    // Actually switch the layout if needed - this mimics clicking the sidebar button
+    // Actually switch the layout if needed
     if (needsLayoutSwitch) {
       grid.layout = newLayout;
     }
@@ -217,35 +238,11 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
       resizer: () => BUI.html`${resizerElement}`,
     };
 
-    const desktopLayouts = {
-      Viewer: {
-        template: `"viewer resizer combined" 1fr /1fr 4px 25rem`,
-      },
-      "DMA/PMA Dashboard": {
-        template: `"viewer resizer analytics" 1fr /1fr 4px 60rem`,
-      },
-      BimAnalytics: {
-        template: `"viewer resizer bimAnalytics" 1fr /1fr 4px 60rem`,
-      },
-    };
-
-    const mobileLayouts = {
-      Viewer: {
-        template: `"viewer" 1fr /1fr`,
-      },
-      "DMA/PMA Dashboard": {
-        template: `"analytics" 1fr /1fr`,
-      },
-      BimAnalytics: {
-        template: `"bimAnalytics" 1fr /1fr`,
-      },
-      Tools: {
-        template: `"combined" 1fr /1fr`,
-      },
-    };
-
     const isMobile = getMobileState();
+    const desktopLayouts = getDesktopLayouts();
+    const mobileLayouts = getMobileLayouts();
     grid.layouts = (isMobile ? mobileLayouts : desktopLayouts) as any;
+    grid.layout = isMobile ? "Viewer_m" : "Viewer";
 
     setTimeout(() => {
       const rightPanel = document.querySelector(
@@ -307,7 +304,10 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
         layout &&
         (layout === "Viewer" ||
           layout === "DMA/PMA Dashboard" ||
-          layout === "BimAnalytics")
+          layout === "BimAnalytics" ||
+          layout === "Viewer_m" ||
+          layout === "DMA/PMA Dashboard_m" ||
+          layout === "BimAnalytics_m")
       ) {
         currentLayout = layout;
       }
@@ -332,6 +332,18 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
         },
         Tools: {
           template: `"viewer resizer combined" 1fr /1fr 4px ${newWidth}rem`,
+        },
+        Viewer_m: {
+          template: `"viewer" 1fr /1fr`,
+        },
+        "DMA/PMA Dashboard_m": {
+          template: `"analytics" 1fr /1fr`,
+        },
+        BimAnalytics_m: {
+          template: `"bimAnalytics" 1fr /1fr`,
+        },
+        Tools_m: {
+          template: `"combined" 1fr /1fr`,
         },
       };
 
@@ -364,13 +376,20 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
     document.addEventListener("touchend", handleEnd);
   };
 
-  const handleResize = () => {
-    updateMobilePanel();
+  let resizeTimeout: ReturnType<typeof setTimeout>;
 
-    const grid = document.getElementById(state.id);
-    if (grid) {
-      grid.dispatchEvent(new CustomEvent("layoutchange"));
-    }
+  const handleResize = () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      const grid = document.getElementById(state.id) as BUI.Grid<
+        ContentGridLayouts,
+        ContentGridElements
+      > | null;
+
+      updateMobilePanel();
+
+      grid?.dispatchEvent(new CustomEvent("layoutchange"));
+    }, 10);
   };
 
   if (!(window as any).__contentGridResizeListenerAdded) {

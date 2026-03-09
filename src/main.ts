@@ -281,6 +281,10 @@ app.elements = {
         "DMA/PMA Dashboard": appIcons.CHART,
         BimAnalytics: appIcons.TASK,
         Tools: appIcons.LAYOUT,
+        Viewer_m: appIcons.MODEL,
+        "DMA/PMA Dashboard_m": appIcons.CHART,
+        BimAnalytics_m: appIcons.TASK,
+        Tools_m: appIcons.LAYOUT,
       },
     },
   },
@@ -296,13 +300,22 @@ const updateLayoutsForViewport = () => {
 
   if (grid && grid.layouts) {
     const currentLayout = grid.layout;
-    const hasTools = currentLayout === "Tools";
+    const isMobileLayout = currentLayout?.endsWith("_m");
 
-    if (isMobile && !grid.layouts.Tools) {
-      // Switching to mobile - layouts already have Tools
-    } else if (!isMobile && hasTools) {
-      // Switching to desktop while on Tools - switch to Viewer
-      grid.layout = "Viewer";
+    if (isMobile && !isMobileLayout) {
+      // Desktop -> Mobile: add _m suffix
+      const newLayout = currentLayout + "_m";
+      if (grid.layouts[newLayout]) {
+        grid.layout = newLayout;
+      }
+    } else if (!isMobile && isMobileLayout) {
+      // Mobile -> Desktop: remove _m suffix
+      let newLayout = currentLayout.replace("_m", "");
+      // Fallback to Viewer if desktop layout doesn't exist (e.g., Tools_m -> Tools)
+      if (!grid.layouts[newLayout]) {
+        newLayout = "Viewer";
+      }
+      grid.layout = newLayout;
     }
   }
 
