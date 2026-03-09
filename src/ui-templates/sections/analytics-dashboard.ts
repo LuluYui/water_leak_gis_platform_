@@ -84,7 +84,25 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
 
     const chartKey = "global-running";
 
-    // Always destroy existing chart first to avoid conflicts
+    // If chart already exists on the same canvas, just update the data
+    if (_charts[chartKey] && _charts[chartKey].canvas === canvas) {
+      const chart = _charts[chartKey];
+      chart.data.labels = _globalHistory.map((h) =>
+        new Date(h.timestamp).toLocaleString([], {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true,
+        }),
+      );
+      chart.data.datasets[0].data = _globalHistory.map((h) => h.totalFlow);
+      chart.update("none"); // Update without animation for smoother live feed
+      return;
+    }
+
+    // Canvas changed or chart doesn't exist, so destroy old and create new
     if (_charts[chartKey]) {
       try {
         _charts[chartKey].destroy();
