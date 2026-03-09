@@ -10,7 +10,6 @@ let _iotManager: LiveIoTManager;
 let _charts: { [key: string]: Chart } = {};
 let _globalHistory: { timestamp: number; totalFlow: number }[] = [];
 let _analyticsIntervalId: ReturnType<typeof setInterval> | null = null;
-let _lastRunningState = false;
 
 // Expose charts to window for external access (e.g., resize handler)
 (window as any)._analyticsCharts = _charts;
@@ -76,18 +75,6 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
     _analyticsIntervalId = null;
   }
 
-  if (running !== _lastRunningState) {
-    _lastRunningState = running;
-    if (_charts["global-running"]) {
-      _charts["global-running"].destroy();
-      delete _charts["global-running"];
-    }
-    if (_charts["global"]) {
-      _charts["global"].destroy();
-      delete _charts["global"];
-    }
-  }
-
   const isDark = document.documentElement.classList.contains("bim-ui-dark");
   const titleColor = isDark ? "#4ade80" : "#6528d7";
 
@@ -97,28 +84,14 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
 
     const chartKey = "global-running";
 
-    // If chart already exists and canvas is the same, just update data
-    if (_charts[chartKey] && _charts[chartKey].canvas === canvas) {
-      _charts[chartKey].data.labels = _globalHistory.map((h) =>
-        new Date(h.timestamp).toLocaleString([], {
-          month: "short",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          hour12: true,
-        }),
-      );
-      _charts[chartKey].data.datasets[0].data = _globalHistory.map(
-        (h) => h.totalFlow,
-      );
-      _charts[chartKey].update();
-      return;
-    }
-
-    // Destroy old chart if exists and canvas is different
+    // Always destroy existing chart first to avoid conflicts
     if (_charts[chartKey]) {
-      _charts[chartKey].destroy();
+      try {
+        _charts[chartKey].destroy();
+      } catch (e) {
+        // Ignore destroy errors
+      }
+      delete _charts[chartKey];
     }
 
     const ctx = canvas.getContext("2d");
