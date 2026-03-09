@@ -363,18 +363,18 @@ export const contentGridTemplate: BUI.StatefullComponent<ContentGridState> = (
   };
 
   const handleResize = () => {
-    // This triggers the layout update and switches to appropriate layout
-    // updateMobilePanel now handles all the logic including switching layouts
     updateMobilePanel();
 
-    // Force sidebar to re-render its buttons
     const grid = document.getElementById(state.id);
     if (grid) {
       grid.dispatchEvent(new CustomEvent("layoutchange"));
     }
   };
 
-  window.addEventListener("resize", handleResize);
+  if (!(window as any).__contentGridResizeListenerAdded) {
+    window.addEventListener("resize", handleResize);
+    (window as any).__contentGridResizeListenerAdded = true;
+  }
 
   return BUI.html`
     <bim-grid id=${state.id} style="padding: ${CONTENT_GRID_GAP}; gap: ${CONTENT_GRID_GAP}; position: relative; width: 100%; height: 100%;" ${BUI.ref(onCreated)}>
