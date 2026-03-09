@@ -249,14 +249,16 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
         ${
           !running
             ? BUI.html`
-          <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
-            <bim-button label="Start Live Simulation" icon="mdi:play" @click=${() => {
-              _iotManager.setUpdateInterval(2000);
-              _iotManager.startSimulation();
-              update();
-            }} style="background: #4ade80; color: #000; font-size: 12px; padding: 8px 16px;"></bim-button>
-            <div style="font-size: 10px; color: var(--bim-ui_text-dim); text-align: center;">
-              Watch global flow trends update in real-time
+          <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+            <div style="font-size: 11px; color: var(--bim-ui_text-dim); text-align: center;">
+              <span 
+                style="color: #60a5fa; cursor: pointer; text-decoration: underline;"
+                @click=${() => {
+                  _iotManager.setUpdateInterval(2000);
+                  _iotManager.startSimulation();
+                  update();
+                }}
+              >Start Live Simulation</span> to watch real-time trends
             </div>
           </div>
         `
