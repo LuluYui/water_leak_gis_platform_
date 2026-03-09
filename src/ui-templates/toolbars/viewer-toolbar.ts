@@ -7,11 +7,16 @@ import { appIcons, tooltips } from "../../globals";
 
 const MOBILE_BREAKPOINT = 768;
 
-export const updateToolbarVertical = () => {
+export const updateToolbarVertical = (retries = 3) => {
   const toolbar = document.getElementById(
     "viewer-toolbar",
   ) as BUI.Toolbar | null;
-  if (!toolbar) return;
+  if (!toolbar) {
+    if (retries > 0) {
+      setTimeout(() => updateToolbarVertical(retries - 1), 100);
+    }
+    return;
+  }
 
   if (window.innerWidth < MOBILE_BREAKPOINT) {
     toolbar.setAttribute("vertical", "");
