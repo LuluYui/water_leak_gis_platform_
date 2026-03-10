@@ -8,8 +8,10 @@ export interface AnalyticsManagerState {
 
 let _iotManager: LiveIoTManager;
 let _charts: { [key: string]: Chart } = {};
+let _resizeObservers: { [key: string]: ResizeObserver } = {};
 let _globalHistory: { timestamp: number; totalFlow: number }[] = [];
 let _analyticsIntervalId: ReturnType<typeof setInterval> | null = null;
+let _currentUpdate: (() => void) | null = null;
 
 // Expose charts to window for external access (e.g., resize handler)
 (window as any)._analyticsCharts = _charts;
@@ -56,7 +58,9 @@ function calculateGlobalAnalytics(
 export const analyticsDashboardTemplate: BUI.StatefullComponent<
   AnalyticsManagerState
 > = (state, update) => {
+  if (!state?.iotManager) return BUI.html`<div>Loading...</div>`;
   _iotManager = state.iotManager;
+  _currentUpdate = update;
   const meters = _iotManager
     .getAllFlowMeters()
     .sort((a, b) => a.name.localeCompare(b.name));
@@ -68,7 +72,7 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
 
   if (running && !_analyticsIntervalId) {
     _analyticsIntervalId = setInterval(() => {
-      update();
+      if (_currentUpdate) _currentUpdate();
     }, currentInterval);
   } else if (!running && _analyticsIntervalId) {
     clearInterval(_analyticsIntervalId);
@@ -80,52 +84,29 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
 
   const initGlobalChart = (el: Element | undefined) => {
     const canvas = el as HTMLCanvasElement | null;
-    if (!canvas) return;
-
     const chartKey = "global-running";
 
-    // If chart already exists on the same canvas, just update the data
-    if (_charts[chartKey] && _charts[chartKey].canvas === canvas) {
-      const chart = _charts[chartKey];
-      chart.data.labels = _globalHistory.map((h) =>
-        new Date(h.timestamp).toLocaleString([], {
-          month: "short",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          hour12: true,
-        }),
-      );
-      chart.data.datasets[0].data = _globalHistory.map((h) => h.totalFlow);
-      chart.update("none"); // Update without animation for smoother live feed
+    if (!canvas) {
+      if (_resizeObservers[chartKey]) {
+        _resizeObservers[chartKey].disconnect();
+        delete _resizeObservers[chartKey];
+      }
       return;
     }
 
-    // Canvas changed or chart doesn't exist, so destroy old and create new
-    if (_charts[chartKey]) {
-      try {
-        _charts[chartKey].destroy();
-      } catch (e) {
-        // Ignore destroy errors
-      }
-      delete _charts[chartKey];
-    }
+    console.log(canvas);
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const setupChart = () => {
+      const existingChart = Chart.getChart(canvas);
 
-    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, "rgba(96, 165, 250, 0.4)");
-    gradient.addColorStop(1, "rgba(96, 165, 250, 0.0)");
-
-    const gridColor = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)";
-    const textColor = isDark ? "#9ca3af" : "#6b7280";
-
-    _charts[chartKey] = new Chart(canvas, {
-      type: "line",
-      data: {
-        labels: _globalHistory.map((h) =>
+      // If chart already exists on the same canvas, just update the data
+      if (
+        _charts[chartKey] &&
+        (_charts[chartKey].canvas === canvas ||
+          existingChart === _charts[chartKey])
+      ) {
+        const chart = _charts[chartKey];
+        chart.data.labels = _globalHistory.map((h) =>
           new Date(h.timestamp).toLocaleString([], {
             month: "short",
             day: "numeric",
@@ -134,60 +115,125 @@ export const analyticsDashboardTemplate: BUI.StatefullComponent<
             second: "2-digit",
             hour12: true,
           }),
-        ),
-        datasets: [
-          {
-            label: "Total Flow (L/min)",
-            data: _globalHistory.map((h) => h.totalFlow),
-            borderColor: "#60a5fa",
-            backgroundColor: gradient,
-            borderWidth: 2,
-            pointRadius: 1.5,
-            pointBackgroundColor: "#60a5fa",
-            tension: 0.4,
-            fill: true,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: { duration: 0 },
-        devicePixelRatio: window.devicePixelRatio,
-        scales: {
-          x: {
-            grid: { display: false },
-            ticks: {
-              color: textColor,
-              maxRotation: 0,
-              autoSkip: true,
-              maxTicksLimit: 10,
-              font: { size: 10 },
+        );
+        chart.data.datasets[0].data = _globalHistory.map((h) => h.totalFlow);
+        chart.update("none"); // Update without animation for smoother live feed
+        return;
+      }
+
+      if (existingChart) {
+        existingChart.destroy();
+      }
+
+      // Canvas changed or chart doesn't exist, so destroy old and create new
+      if (_charts[chartKey]) {
+        try {
+          _charts[chartKey].destroy();
+        } catch (e) {
+          // Ignore destroy errors
+        }
+        delete _charts[chartKey];
+      }
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+      gradient.addColorStop(0, "rgba(96, 165, 250, 0.4)");
+      gradient.addColorStop(1, "rgba(96, 165, 250, 0.0)");
+
+      const gridColor = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)";
+      const textColor = isDark ? "#9ca3af" : "#6b7280";
+
+      _charts[chartKey] = new Chart(canvas, {
+        type: "line",
+        data: {
+          labels: _globalHistory.map((h) =>
+            new Date(h.timestamp).toLocaleString([], {
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+              hour12: true,
+            }),
+          ),
+          datasets: [
+            {
+              label: "Total Flow (L/min)",
+              data: _globalHistory.map((h) => h.totalFlow),
+              borderColor: "#60a5fa",
+              backgroundColor: gradient,
+              borderWidth: 2,
+              pointRadius: 1.5,
+              pointBackgroundColor: "#60a5fa",
+              tension: 0.4,
+              fill: true,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 0 },
+          devicePixelRatio: window.devicePixelRatio,
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: {
+                color: textColor,
+                maxRotation: 0,
+                autoSkip: true,
+                maxTicksLimit: 10,
+                font: { size: 10 },
+              },
+            },
+            y: {
+              type: "linear",
+              display: true,
+              grid: { color: gridColor },
+              ticks: { color: textColor, font: { size: 10 } },
+              beginAtZero: true,
             },
           },
-          y: {
-            type: "linear",
-            display: true,
-            grid: { color: gridColor },
-            ticks: { color: textColor, font: { size: 10 } },
-            beginAtZero: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: isDark
+                ? "rgba(0,0,0,0.8)"
+                : "rgba(255,255,255,0.9)",
+              titleColor: "#60a5fa",
+              bodyColor: isDark ? "white" : "#1f2937",
+              borderColor: "#1e40af",
+              borderWidth: 1,
+              padding: 10,
+            },
           },
         },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: isDark
-              ? "rgba(0,0,0,0.8)"
-              : "rgba(255,255,255,0.9)",
-            titleColor: "#60a5fa",
-            bodyColor: isDark ? "white" : "#1f2937",
-            borderColor: "#1e40af",
-            borderWidth: 1,
-            padding: 10,
-          },
-        },
-      },
-    });
+      });
+    };
+
+    if (canvas.width > 0 && canvas.height > 0) {
+      setupChart();
+    } else {
+      if (!_resizeObservers[chartKey]) {
+        _resizeObservers[chartKey] = new ResizeObserver((entries) => {
+          for (const entry of entries) {
+            if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+              setupChart();
+              _resizeObservers[chartKey].disconnect();
+              delete _resizeObservers[chartKey];
+              break;
+            }
+          }
+        });
+        if (canvas.parentElement) {
+          _resizeObservers[chartKey].observe(canvas.parentElement);
+        } else {
+          _resizeObservers[chartKey].observe(canvas);
+        }
+      }
+    }
   };
 
   return BUI.html`

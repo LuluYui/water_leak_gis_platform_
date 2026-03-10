@@ -17,19 +17,21 @@ let _selectedMeterId: string | null = null;
 let _refreshKey = 0;
 let _components: OBC.Components | null = null;
 let _bimAnalyticsIntervalId: ReturnType<typeof setInterval> | null = null;
+let _currentBimUpdate: (() => void) | null = null;
 
 export const bimAnalyticsDashboardTemplate: BUI.StatefullComponent<
   BimAnalyticsManagerState
 > = (state, update) => {
   _iotManager = state.iotManager;
   _components = state.components || null;
+  _currentBimUpdate = update;
 
   const running = _iotManager.isRunning();
   const currentInterval = _iotManager.getUpdateInterval();
 
   if (running && !_bimAnalyticsIntervalId) {
     _bimAnalyticsIntervalId = setInterval(() => {
-      update();
+      if (_currentBimUpdate) _currentBimUpdate();
     }, currentInterval);
   } else if (!running && _bimAnalyticsIntervalId) {
     clearInterval(_bimAnalyticsIntervalId);
