@@ -69,7 +69,7 @@ const getMobileLayouts = () => ({
 
 const getDesktopLayouts = () => ({
   Viewer: {
-    template: `"viewer resizer combined" 1fr /1fr 4px 25rem`,
+    template: `"viewer resizer combined" 1fr /1fr 4px 15rem`,
   },
   "DMA/PMA Dashboard": {
     template: `"viewer resizer analytics" 1fr /1fr 4px 45rem`,

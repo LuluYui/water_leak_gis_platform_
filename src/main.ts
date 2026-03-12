@@ -3,7 +3,10 @@ import * as THREE from "three";
 import * as OBF from "@thatopen/components-front";
 import * as BUI from "@thatopen/ui";
 import * as TEMPLATES from "./ui-templates";
-import { updateToolbarVertical } from "./ui-templates/toolbars/viewer-toolbar";
+import {
+  updateToolbarVertical,
+  refreshToolbarIcons,
+} from "./ui-templates/toolbars/viewer-toolbar";
 import { appIcons, CONTENT_GRID_ID } from "./globals";
 import { viewportSettingsTemplate } from "./ui-templates/buttons/viewport-settings";
 import { iotDashboardTemplate } from "./ui-templates/sections/iot-dashboard";
@@ -296,6 +299,7 @@ app.layout = "App";
 
 const updateLayoutsForViewport = () => {
   updateToolbarVertical();
+  refreshToolbarIcons();
 };
 
 window.addEventListener("resize", updateLayoutsForViewport);

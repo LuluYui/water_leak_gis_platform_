@@ -140,7 +140,7 @@ export const viewportButtonsTemplate: BUI.StatefullComponent<
   };
 
   return BUI.html`
-    <bim-toolbar style="align-self: start; justify-self: start; margin: 1rem;" vertical>
+    <bim-toolbar id="left-toolbar" style="align-self: start; justify-self: start; margin: 1rem;" vertical>
       <bim-toolbar-section>
         <bim-button @click=${onMeasurementsClick} ?active=${areMeasurementsEnabled} label="Measurements" tooltip-title="Measurements" tooltip-text="Double-click on model to measure" icon=${appIcons.RULER}>
           <bim-context-menu>

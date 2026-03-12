@@ -25,6 +25,44 @@ export const updateToolbarVertical = (retries = 3) => {
   }
 };
 
+export const refreshToolbarIcons = () => {
+  if (window.innerWidth >= MOBILE_BREAKPOINT) return;
+
+  const toolbarIds = ["viewer-toolbar", "left-toolbar"];
+
+  requestAnimationFrame(() => {
+    for (const id of toolbarIds) {
+      const toolbar = document.getElementById(id);
+      if (!toolbar) continue;
+
+      const btns = toolbar.querySelectorAll("bim-button[icon]");
+      btns.forEach((btn) => {
+        const icon = btn.getAttribute("icon");
+        if (icon) {
+          btn.setAttribute("data-icon", icon);
+          btn.removeAttribute("icon");
+        }
+      });
+    }
+
+    requestAnimationFrame(() => {
+      for (const id of toolbarIds) {
+        const toolbar = document.getElementById(id);
+        if (!toolbar) continue;
+
+        const btns = toolbar.querySelectorAll("bim-button[data-icon]");
+        btns.forEach((btn) => {
+          const icon = btn.getAttribute("data-icon");
+          if (icon) {
+            btn.setAttribute("icon", icon);
+            btn.removeAttribute("data-icon");
+          }
+        });
+      }
+    });
+  });
+};
+
 export interface ViewerToolbarState {
   components: OBC.Components;
   world: OBC.World;
