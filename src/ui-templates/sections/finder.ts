@@ -32,48 +32,6 @@ export const finderPanelTemplate: BUI.StatefullComponent<FinderPanelState> = (
   const finder = components.get(OBC.ItemsFinder);
   const hider = components.get(OBC.Hider);
 
-  const createFinderQueries = () => {
-    finder.create("FlowMeters", [
-      {
-        categories: [/IFCFLOWCONTROLLER/],
-        attributes: { queries: [{ name: /Name/, value: /Flowmeter/ }] },
-      },
-    ]);
-    finder.create("Flow Segment", [{ categories: [/IFCFLOWSEGMENT/] }]);
-    finder.create("Leak Point Pit", [
-      {
-        categories: [/IFCBUILDINGELEMENTPROXY/],
-        attributes: { queries: [{ name: /Name/, value: /Leak/ }] },
-      },
-    ]);
-    finder.create("Chamber", [
-      {
-        categories: [/IFCBUILDINGELEMENTPROXY/],
-        attributes: { queries: [{ name: /Name/, value: /Chamber/ }] },
-      },
-    ]);
-    finder.create("Manhole", [
-      {
-        categories: [/IFCFLOWTERMINAL/],
-        attributes: { queries: [{ name: /Name/, value: /Manhole/ }] },
-      },
-    ]);
-    finder.create("Microphone Pit", [
-      {
-        categories: [/IFCBUILDINGELEMENTPROXY/],
-        attributes: { queries: [{ name: /Name/, value: /Microphone/ }] },
-      },
-    ]);
-    finder.create("Fire Hydrant", [
-      {
-        categories: [/IFCBUILDINGELEMENTPROXY/],
-        attributes: { queries: [{ name: /Name/, value: /M_Fire/ }] },
-      },
-    ]);
-  };
-
-  createFinderQueries();
-
   const getFinderResult = async (queryName: string) => {
     const finderQuery = finder.list.get(queryName);
     if (!finderQuery) return {};
